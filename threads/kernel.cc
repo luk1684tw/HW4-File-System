@@ -30,18 +30,16 @@ Kernel::Kernel(int argc, char **argv)
     debugUserProg = FALSE;
     consoleIn = NULL;          // default is stdin
     consoleOut = NULL;         // default is stdout
-    for (int i = 0; i < NumPhysPages; i++) {
-        usedPhysicalPage[i] = FALSE;
-    }
-    for (int i = 0; i < 10; i++) {
-        ThreadPriority[i] = 0;
-    }
 #ifndef FILESYS_STUB
     formatFlag = FALSE;
 #endif
     reliability = 1;            // network reliability, default is 1.0
     hostName = 0;               // machine id, also UNIX socket name
                                 // 0 is the default machine id
+								
+	// MP4 mod tag
+	execfileNum = 0; // dummy operation to keep valgrind happy
+								
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-rs") == 0) {
  	    	ASSERT(i + 1 < argc);
@@ -58,12 +56,7 @@ Kernel::Kernel(int argc, char **argv)
 	    	ASSERT(i + 1 < argc);
 	    	consoleIn = argv[i + 1];
 	    	i++;
-		} else if (strcmp(argv[i], "-ep") == 0) {
-            execfile[++execfileNum] = argv[++i];
-            ThreadPriority[execfileNum] = atoi(argv[++i]);
-            // cout << execfile[execfileNum] << "\n"
-            //      << "Priority: " << ThreadPriority[execfileNum] << "\n";
-        } else if (strcmp(argv[i], "-co") == 0) {
+		} else if (strcmp(argv[i], "-co") == 0) {
 	    	ASSERT(i + 1 < argc);
 	    	consoleOut = argv[i + 1];
 	    	i++;
@@ -122,10 +115,28 @@ Kernel::Initialize()
 #else
     fileSystem = new FileSystem(formatFlag);
 #endif // FILESYS_STUB
-    postOfficeIn = new PostOfficeInput(10);
+
+	// MP4 mod tag
+    /*
+	postOfficeIn = new PostOfficeInput(10);
     postOfficeOut = new PostOfficeOutput(reliability);
+	*/
 
     interrupt->Enable();
+}
+
+//----------------------------------------------------------------------
+//	MP4 mod tag
+//	Kernel::PrepareToEnd
+// 	Since Nachos does not disable Timer, Console after all threads complete,
+//	which will result in generating infinite interrupts. We manually disable timer,
+//	console, etc. after all threads complete.
+//----------------------------------------------------------------------
+void
+Kernel::PrepareToEnd()
+{
+	alarm->Disable();
+	synchConsoleIn->Disable();
 }
 
 //----------------------------------------------------------------------
@@ -144,9 +155,13 @@ Kernel::~Kernel()
     delete synchConsoleOut;
     delete synchDisk;
     delete fileSystem;
+	
+	// Mp4 mod tag
+	/*
     delete postOfficeIn;
     delete postOfficeOut;
-    
+    */
+	
     Exit(0);
 }
 
@@ -250,7 +265,7 @@ Kernel::NetworkTest() {
         postOfficeOut->Send(outPktHdr, outMailHdr, ack); 
 
         // Wait for the ack from the other machine to the first message we sent
-	    postOfficeIn->Receive(1, &inPktHdr, &inMailHdr, buffer);
+	postOfficeIn->Receive(1, &inPktHdr, &inMailHdr, buffer);
         cout << "Got: " << buffer << " : from " << inPktHdr.from << ", box " 
                                                 << inMailHdr.from << "\n";
         cout.flush();
@@ -272,25 +287,19 @@ void ForkExecute(Thread *t)
 void Kernel::ExecAll()
 {
 	for (int i=1;i<=execfileNum;i++) {
-		int a = Exec(execfile[i], ThreadPriority[i]);
+		int a = Exec(execfile[i]);
 	}
 	currentThread->Finish();
     //Kernel::Exec();	
 }
 
 
-int Kernel::Exec(char* name, int priority)
+int Kernel::Exec(char* name)
 {
-    threadNum++;
 	t[threadNum] = new Thread(name, threadNum);
-    t[threadNum]->SetBurstTime(0);
-    t[threadNum]->SetWaitTime(0);
-    t[threadNum]->SetExeTime(0);
-    t[threadNum]->SetPriority(priority);
-
-    
-	t[threadNum]->space = new AddrSpace(usedPhysicalPage);
+	t[threadNum]->space = new AddrSpace();
 	t[threadNum]->Fork((VoidFunctionPtr) &ForkExecute, (void *)t[threadNum]);
+	threadNum++;
 
 	return threadNum-1;
 /*
@@ -320,34 +329,10 @@ int Kernel::Exec(char* name, int priority)
 //  cout << "after ThreadedKernel:Run();" << endl;  // unreachable
 }
 
+#ifdef FILESYS_STUB
 int Kernel::CreateFile(char *filename)
 {
 	return fileSystem->Create(filename);
 }
+#endif
 
-void Kernel::PrintInt(int number)
-{
-    synchConsoleOut->PrintInt(number);
-}
-
-OpenFileId Kernel::OpenFile(char *filename)
-{
-    int ID = (int)fileSystem->Open(filename);
-    if(ID!=0) return ID;
-    else return -1;
-}
-
-int Kernel::Read(char *buffer, int size, OpenFileId id)
-{
-    return fileSystem->Read(buffer,size,id);
-}
-
-int Kernel::Write(char *buffer, int size, OpenFileId id)
-{
-    return fileSystem->Write(buffer,size,id);
-}
-
-int Kernel::Close(OpenFileId id)
-{
-    return fileSystem->Close(id);
-}

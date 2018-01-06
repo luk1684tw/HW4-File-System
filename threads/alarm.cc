@@ -48,12 +48,8 @@ Alarm::CallBack()
 {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
-
-    if (status != IdleMode && kernel->currentThread->Priority < 50) { //remove L1,L2
-            if (kernel->currentThread->L3time >= 99){
-                // cout << "Alarm call yield\n";
-                interrupt->YieldOnReturn();
-            }
-	            
+    
+    if (status != IdleMode) {
+	interrupt->YieldOnReturn();
     }
 }

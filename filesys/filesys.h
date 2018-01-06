@@ -40,76 +40,24 @@
 #ifdef FILESYS_STUB 		// Temporarily implement file system calls as 
 				// calls to UNIX, until the real file system
 				// implementation is available
-typedef int OpenFileId;				
-				
 class FileSystem {
   public:
     FileSystem() { for (int i = 0; i < 20; i++) fileDescriptorTable[i] = NULL; }
 
     bool Create(char *name) {
-		int fileDescriptor = OpenForWrite(name);
+	int fileDescriptor = OpenForWrite(name);
 
-		if (fileDescriptor == -1) return FALSE;
-		Close(fileDescriptor); 
-		return TRUE; 
+	if (fileDescriptor == -1) return FALSE;
+	Close(fileDescriptor); 
+	return TRUE; 
 	}
 
     OpenFile* Open(char *name) {
 	  int fileDescriptor = OpenForReadWrite(name, FALSE);
 
 	  if (fileDescriptor == -1) return NULL;
-	  
-	  OpenFile* file = new OpenFile(fileDescriptor);
-	  fileDescriptorTable[fileDescriptor] = file;
-	  return file;	
-	  //return new OpenFile(fileDescriptor);
+	  return new OpenFile(fileDescriptor);
       }
-
-	int Read(char *buffer, int size, OpenFileId id)
-	{
-		int check,i = 0;
-		for(i=0;i<20;i++){
-			if(fileDescriptorTable[i]!=NULL && (OpenFileId)fileDescriptorTable[i] == id){
-				check = 1;
-				break;
-			}	
-		}
-
-		if(check) return fileDescriptorTable[i]->Read(buffer,size); 
-		else return -1;
-	}
-
-	int Write(char *buffer, int size, OpenFileId id)
-	{
-		int check,i = 0;
-		for(i=0;i<20;i++){
-			if(fileDescriptorTable[i]!=NULL && (OpenFileId)fileDescriptorTable[i] == id){
-				check = 1;
-				break;
-			}	
-		}
-		
-		if(check) return fileDescriptorTable[i]->Write(buffer,size); 
-		else return -1;
-	}
-
-	int Close(OpenFileId id)
-	{
-		int check,i = 0;
-		for(i=0;i<20;i++){
-			if(fileDescriptorTable[i]!=NULL && (OpenFileId)fileDescriptorTable[i] == id){
-				check = 1;
-				break;
-			}	
-		}
-
-		if(check){
-			delete fileDescriptorTable[i];
-			fileDescriptorTable[i] = NULL;
-			return 1;
-		}
-		else return 0;
-	}   
 
     bool Remove(char *name) { return Unlink(name) == 0; }
 
@@ -126,6 +74,8 @@ class FileSystem {
     					// If "format", there is nothing on
 					// the disk, so initialize the directory
     					// and the bitmap of free blocks.
+	// MP4 mod tag
+	~FileSystem();
 
     bool Create(char *name, int initialSize);  	
 					// Create a file (UNIX creat)

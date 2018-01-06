@@ -27,8 +27,8 @@
 #define SC_Open		6
 #define SC_Read		7
 #define SC_Write	8
+#define SC_Seek         9
 #define SC_Close	10
-#define SC_Seek          9
 #define SC_ThreadFork	11
 #define SC_ThreadYield	12
 #define SC_ExecV	13
@@ -36,8 +36,6 @@
 #define SC_ThreadJoin   15
 #define SC_Add		42
 #define SC_MSG		100
-
-#define SC_PrintInt 87
 
 #ifndef IN_ASM
 
@@ -51,16 +49,13 @@
  * from the system call entry point in exception.cc.
  */
 
-
- 
- void PrintInt(int number);
-
 /* Stop Nachos, and print out performance stats */
 void Halt();			
  
 /*
  * Add the two operants and return the result
  */ 
+
 int Add(int op1, int op2);
 /*
  * Just for simply showing message, not a safe way for console IO

@@ -25,7 +25,7 @@ class SynchConsoleInput;
 class SynchConsoleOutput;
 class SynchDisk;
 
-typedef int OpenFileId;	
+
 
 class Kernel {
   public:
@@ -36,21 +36,22 @@ class Kernel {
     void Initialize(); 		// initialize the kernel -- separated
 				// from constructor because 
 				// refers to "kernel" as a global
+				
+	// 2015.11.25 added
+	void PrepareToEnd(); // called before all running programs end
+	
 	void ExecAll();
-	int Exec(char* name, int priority);
+	int Exec(char* name);
     void ThreadSelfTest();	// self test of threads and synchronization
 	
     void ConsoleTest();         // interactive console self test
     void NetworkTest();         // interactive 2-machine network test
 	Thread* getThread(int threadID){return t[threadID];}    
-	
-	int CreateFile(char* filename); // fileSystem call
 
-    void PrintInt(int number);
-    OpenFileId OpenFile(char *filename);
-    int Read(char *buffer, int size, OpenFileId id);
-    int Write(char *buffer, int size, OpenFileId id);
-    int Close(OpenFileId id);
+	#ifdef FILESYS_STUB	
+	int CreateFile(char* filename); // fileSystem call
+	#endif
+
 // These are public for notational convenience; really, 
 // they're global variables used everywhere.
 
@@ -68,12 +69,11 @@ class Kernel {
     PostOfficeOutput *postOfficeOut;
 
     int hostName;               // machine identifier
-    bool  usedPhysicalPage[NumPhysPages];
-    int ThreadPriority[20];
+
   private:
 
-	Thread* t[20];
-	char*   execfile[20];
+	Thread* t[10];
+	char*   execfile[10];
 	int execfileNum;
 	int threadNum;
     bool randomSlice;		// enable pseudo-random time slicing

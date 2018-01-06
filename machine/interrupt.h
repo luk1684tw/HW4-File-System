@@ -55,8 +55,6 @@ enum IntType { TimerInt, DiskInt, ConsoleWriteInt, ConsoleReadInt,
 // to occur in the future.  The internal data structures are
 // left public to make it simpler to manipulate.
 
-typedef int OpenFileId;	
-
 class PendingInterrupt {
   public:
     PendingInterrupt(CallBackObj *callOnInt, int time, IntType kind);
@@ -97,12 +95,10 @@ class Interrupt {
     void Halt(); 		// quit and print out stats
 
     void PrintInt(int number);
+	#ifdef FILESYS_STUB
+	int CreateFile(char *filename);
+	#endif 
 
-	  int CreateFile(char *filename);
-    OpenFileId OpenFile(char *filename);
-    int Read(char *buffer, int size, OpenFileId id);
-    int Write(char *buffer, int size, OpenFileId id);
-    int Close(OpenFileId id);
     void YieldOnReturn();	// cause a context switch on return 
 				// from an interrupt handler
 
@@ -124,8 +120,6 @@ class Interrupt {
     				// by the hardware device simulators.
     
     void OneTick();       	// Advance simulated time
-    bool yieldOnReturn; 	// TRUE if we are to context switch
-				// on return from the interrupt handler
 
   private:
     IntStatus level;		// are interrupts enabled or disabled?
@@ -136,7 +130,8 @@ class Interrupt {
     bool inHandler;		// TRUE if we are running an interrupt handler
     //bool putBusy;               // Is a PrintInt operation in progress
                                   //If so, you cannoot do another one
-    
+    bool yieldOnReturn; 	// TRUE if we are to context switch
+				// on return from the interrupt handler
     MachineStatus status;	// idle, kernel mode, user mode
 
     // these functions are internal to the interrupt simulation code

@@ -74,6 +74,7 @@ ExceptionHandler(ExceptionType which)
 			SysHalt();
 			ASSERTNOTREACHED();
 			break;
+		#ifdef FILESYS_STUB
 		case SC_Create:
 			val = kernel->machine->ReadRegister(4);
 			{
@@ -88,6 +89,7 @@ ExceptionHandler(ExceptionType which)
 			return;
 			ASSERTNOTREACHED();
             break;
+		#endif
       	case SC_Add:
 			DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 			/* Process SysAdd Systemcall*/
@@ -117,84 +119,6 @@ ExceptionHandler(ExceptionType which)
             val=kernel->machine->ReadRegister(4);
             cout << "return value:" << val << endl;
 			kernel->currentThread->Finish();
-			break;
-		case SC_PrintInt:
-			DEBUG(dbgAddr, "Print Integer\n");
-			val = kernel->machine->ReadRegister(4);
-			SysPrintInt(val);
-			{
-			/* set previous programm counter (debugging only)*/
-			kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-				
-		  	/* set programm counter to next instruction (all Instructions are 4 byte wide)*/
-			kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-	
-		   	/* set next programm counter for brach execution */
-		   	kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-			}
-			return;
-			ASSERTNOTREACHED();
-			break;
-		case SC_Open:
-			DEBUG(dbgAddr,"Open File\n");
-			val = kernel->machine->ReadRegister(4);
-			{
-				char *filename = &(kernel->machine->mainMemory[val]);
-				status = SysOpen(filename);
-				kernel->machine->WriteRegister(2, (int) status);
-			}
-			kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-			kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-			kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-			return;
-			ASSERTNOTREACHED();
-            break;
-		case SC_Read:
-			DEBUG(dbgAddr,"Read File\n");
-			val = kernel->machine->ReadRegister(4);
-			{
-				char *buffer = &(kernel->machine->mainMemory[val]);
-				// 5,6 ??
-				int size = kernel->machine->ReadRegister(5);
-				int id = kernel->machine->ReadRegister(6);
-				status = SysRead(buffer,size,id);
-				kernel->machine->WriteRegister(2, (int) status);
-			}
-			kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-			kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-			kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-			return;
-			ASSERTNOTREACHED();
-            break;
-		case SC_Write:
-			DEBUG(dbgAddr,"Write File\n");
-			val = kernel->machine->ReadRegister(4);
-			{
-				char *buffer = &(kernel->machine->mainMemory[val]);
-				// 5 6 ??
-				int size = kernel->machine->ReadRegister(5);
-				int id = kernel->machine->ReadRegister(6);
-				status = SysWrite(buffer,size,id);
-				kernel->machine->WriteRegister(2, (int) status);
-			}
-			kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-			kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-			kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-			return;
-			ASSERTNOTREACHED();
-            break;
-		case SC_Close:
-			DEBUG(dbgAddr,"Close File\n");
-			val = kernel->machine->ReadRegister(4);
-			{
-				status = SysClose(val);
-				kernel->machine->WriteRegister(2, (int) status);
-			}
-			kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-			kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-			kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-			return;
-			ASSERTNOTREACHED();
             break;
       	default:
 			cerr << "Unexpected system call " << type << "\n";

@@ -4,10 +4,10 @@ int
 main()
 {
 	int n;
-	for (n = 0 ; n < 2000;n++){}
-	/*for (n=15;n<=190;n++){
+	for (n=15;n<=19;n++){
         
 		PrintInt(n);
-        }*/
+        }
+        Halt();
 }
 

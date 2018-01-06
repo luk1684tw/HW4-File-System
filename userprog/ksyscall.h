@@ -26,6 +26,7 @@ int SysAdd(int op1, int op2)
   return op1 + op2;
 }
 
+#ifdef FILESYS_STUB
 int SysCreate(char *filename)
 {
 	// return value
@@ -33,29 +34,7 @@ int SysCreate(char *filename)
 	// 0: failed
 	return kernel->interrupt->CreateFile(filename);
 }
+#endif
 
-void SysPrintInt(int number)
-{
-	kernel->interrupt->PrintInt(number);
-}
 
-OpenFileId SysOpen(char *filename)
-{
-	kernel->interrupt->OpenFile(filename);
-}
-
-int SysRead(char *buffer, int size, OpenFileId id)
-{
-	kernel->interrupt->Read(buffer,size,id);
-}
-
-int SysWrite(char *buffer, int size, OpenFileId id)
-{
-	kernel->interrupt->Write(buffer,size,id);
-}
-
-int SysClose(OpenFileId id)
-{
-	kernel->interrupt->Close(id);
-}
 #endif /* ! __USERPROG_KSYSCALL_H__ */

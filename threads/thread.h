@@ -50,8 +50,7 @@
 // and the RS6000 needs to save 75 (!)
 // For simplicity, I just take the maximum over all architectures.
 
-#define MachineStateSize 75
-#define HighestPriority 149
+#define MachineStateSize 75 
 
 
 // Size of the thread's private execution stack.
@@ -102,29 +101,11 @@ class Thread {
     void CheckOverflow();   	// Check if thread stack has overflowed
     void setStatus(ThreadStatus st) { status = st; }
     ThreadStatus getStatus() { return (status); }
-	  char* getName() { return (name); }
+	char* getName() { return (name); }
     
-	  int getID() { return (ID); }
+	int getID() { return (ID); }
     void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
-
-    void SetPriority(int p);
-    int GetPriority();
-
-    void SetBurstTime(int t);
-    int GetBurstTime();
-
-    void SetExeTime(int t);
-    int GetExeTime();
-
-    void SetWaitTime(int t);
-    int GetWaitTime();
-
-    int Priority;               // priority
-    int WaitTime;               // time wainting in ready queue
-    int BurstTime;              // next expect executtion time
-    int ExeTime;                // processed time in CPU
-    int L3time;
 
   private:
     // some of the private data for this class is listed above
@@ -134,7 +115,7 @@ class Thread {
 				// (If NULL, don't deallocate stack)
     ThreadStatus status;	// ready, running or blocked
     char* name;
-	  int   ID;
+	int   ID;
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
 				// Used internally by Fork()

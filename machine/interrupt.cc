@@ -23,7 +23,6 @@
 #include "copyright.h"
 #include "interrupt.h"
 #include "main.h"
-#include "scheduler.h"
 
 // String definitions for debugging messages
 
@@ -154,10 +153,10 @@ Interrupt::OneTick()
 // advance simulated time
     if (status == SystemMode) {
         stats->totalTicks += SystemTick;
-	    stats->systemTicks += SystemTick;
+	stats->systemTicks += SystemTick;
     } else {
-	    stats->totalTicks += UserTick;
-	    stats->userTicks += UserTick;
+	stats->totalTicks += UserTick;
+	stats->userTicks += UserTick;
     }
     DEBUG(dbgInt, "== Tick " << stats->totalTicks << " ==");
 
@@ -166,34 +165,14 @@ Interrupt::OneTick()
 				// (interrupt handlers run with
 				// interrupts disabled)
     CheckIfDue(FALSE);		// check for pending interrupts
-
-    Scheduler *schedule  = kernel->scheduler;              
-    schedule->IncreaseWaitTime();
-    // cout << "Current running Thread:" << kernel->currentThread->getID()
-    //      << " , Thread Priority: " << kernel->currentThread->GetPriority()
-    //      << " Thread burstTime: " << kernel->currentThread->GetBurstTime() 
-    //      << " Total ticks: " << kernel->stats->totalTicks
-    //      << " Exetime: " << kernel->currentThread->GetExeTime()
-    //      << " L3time: " << kernel->currentThread->L3time << endl;
-    kernel->currentThread->SetExeTime(kernel->currentThread->GetExeTime()+1);
-    kernel->currentThread->L3time++;               
-
-    
-    
     ChangeLevel(IntOff, IntOn);	// re-enable interrupts
     if (yieldOnReturn) {	// if the timer device handler asked 
     				// for a context switch, ok to do it now
-	    yieldOnReturn = FALSE;
- 	    status = SystemMode;		// yield is a kernel routine
-	    kernel->currentThread->Yield();
-	    status = oldStatus;
-    } 
-    else 
-    {
-        // cout << "set aging to false\n";
-        kernel->scheduler->aging = false;
+	yieldOnReturn = FALSE;
+ 	status = SystemMode;		// yield is a kernel routine
+	kernel->currentThread->Yield();
+	status = oldStatus;
     }
-    
 }
 
 //----------------------------------------------------------------------
@@ -231,9 +210,9 @@ Interrupt::Idle()
     DEBUG(dbgInt, "Machine idling; checking for interrupts.");
     status = IdleMode;
     if (CheckIfDue(TRUE)) {	// check for any pending interrupts
-	status = SystemMode;
-	return;			// return in case there's now
-				// a runnable thread
+		status = SystemMode;
+		return;			// return in case there's now
+					// a runnable thread
     }
 
     // if there are no pending interrupts, and nothing is on the ready
@@ -242,8 +221,11 @@ Interrupt::Idle()
     // is not reached.  Instead, the halt must be invoked by the user program.
 
     DEBUG(dbgInt, "Machine idle.  No interrupts to do.");
+	// MP4 mod tag
+	/*
     cout << "No threads ready or runnable, and no pending interrupts.\n";
     cout << "Assuming the program completed.\n";
+	*/
     Halt();
 }
 
@@ -254,47 +236,25 @@ Interrupt::Idle()
 void
 Interrupt::Halt()
 {
+	// MP4 mod tag
+	/*
     cout << "Machine halting!\n\n";
     cout << "This is halt\n";
     kernel->stats->Print();
+	*/
+	delete debug;
+	
     delete kernel;	// Never returns.
 }
 
+#ifdef FILESYS_STUB
 int
 Interrupt::CreateFile(char *filename)
 {
     return kernel->CreateFile(filename);
 }
+#endif
 
-void
-Interrupt::PrintInt(int number)
-{
-    kernel->PrintInt(number);
-}
-
-OpenFileId 
-Interrupt::OpenFile(char *filename)
-{
-    return kernel->OpenFile(filename);
-}
-
-int 
-Interrupt::Read(char *buffer, int size, OpenFileId id)
-{
-    return kernel->Read(buffer,size,id);
-}
-
-int 
-Interrupt::Write(char *buffer, int size, OpenFileId id)
-{
-    return kernel->Write(buffer,size,id);
-}
-
-int 
-Interrupt::Close(OpenFileId id)
-{
-    return kernel->Close(id);  
-}
 //----------------------------------------------------------------------
 // Interrupt::Schedule
 // 	Arrange for the CPU to be interrupted when simulated time

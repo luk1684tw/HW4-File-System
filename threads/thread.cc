@@ -21,7 +21,6 @@
 #include "switch.h"
 #include "synch.h"
 #include "sysdep.h"
-#include "stats.h"
 
 // this is put at the top of the execution stack, for detecting stack overflows
 const int STACK_FENCEPOST = 0xdedbeef;
@@ -36,10 +35,8 @@ const int STACK_FENCEPOST = 0xdedbeef;
 
 Thread::Thread(char* threadName, int threadID)
 {
-    // cout << "Thread " << threadID << " created\n"; 
 	ID = threadID;
     name = threadName;
-    L3time = 0;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -66,7 +63,6 @@ Thread::Thread(char* threadName, int threadID)
 Thread::~Thread()
 {
     DEBUG(dbgThread, "Deleting thread: " << name);
-    cout << "In destructor destroying " << this->getID() << " , currentThread: " << kernel->currentThread->getID() << endl; 
     ASSERT(this != kernel->currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
@@ -204,49 +200,17 @@ Thread::Finish ()
 void
 Thread::Yield ()
 {
-    cout << "Thread " << this->getID() << " yield\n";
     Thread *nextThread;
-    Statistics *stats = kernel->stats;
     IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
     
     ASSERT(this == kernel->currentThread);
     
     DEBUG(dbgThread, "Yielding thread: " << name);
     
-    // cout << "testing!!!!!!!!!!!!!!!!!!\n";
-    // if (!(kernel->scheduler->L1queue->IsInList(this)) && !(kernel->scheduler->L2queue->IsInList(this))
-    // && !(kernel->scheduler->L3queue->IsInList(this)) && (this->getID() > 1))
-    // {
-            // cout << "In thread.cc line 218\n";
-            kernel->scheduler->ReadyToRun(this);
-    // }
-    
-    // cout <<  "Find next Thread\n";
     nextThread = kernel->scheduler->FindNextToRun();
-    
-
-    if (nextThread != NULL) 
-    {
-        // if (kernel->currentThread->GetPriority() < 100 && kernel->scheduler->aging == false)
-        // {
-        //     int exeTime = kernel->currentThread->GetExeTime();
-        //     int burst = kernel->currentThread->GetBurstTime();
-        //     int estimate = 0.5*exeTime + 0.5*burst;
-        //     kernel->currentThread->SetBurstTime(estimate);
-
-        //     cout << "Tick[" << kernel->stats->totalTicks << "]: Thread[" << kernel->currentThread->getID() 
-        //          << "] has changed its burstTime to " << estimate << " Ticks\n";
-        // }
-        
-		
-        cout << "Tick[" << stats->totalTicks << "]: Thread[" << nextThread->getID() 
-             << "] is now selected for execution\n"
-             << "Tick[" << stats->totalTicks << "]: Thread[" << this->getID()
-             << "] is replaced, and it has executed [" << this->GetExeTime() <<"] ticks\n";
-        
-        this->L3time = 0;
-        
-	    kernel->scheduler->Run(nextThread, FALSE);
+    if (nextThread != NULL) {
+	kernel->scheduler->ReadyToRun(this);
+	kernel->scheduler->Run(nextThread, FALSE);
     }
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
@@ -282,27 +246,12 @@ Thread::Sleep (bool finishing)
     DEBUG(dbgThread, "Sleeping thread: " << name);
 
     status = BLOCKED;
-	cout << "debug Thread::Sleep " << name << "wait for Idle\n";
+	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
     while ((nextThread = kernel->scheduler->FindNextToRun()) == NULL) {
+		kernel->PrepareToEnd();
 		kernel->interrupt->Idle();	// no one to run, wait for an interrupt
 	}    
     // returns when it's time for us to run
-	// cout << "Thread " << this->getID() << " Sleep\n";
-    int prev_burstTime = this->GetBurstTime();
-    Statistics *stats = kernel->stats;
-    cout << "Tick[" << kernel->stats->totalTicks << "]: Thread[" << kernel->currentThread->getID() 
-         << "] has changed its burstTime to " << 0.5*prev_burstTime + 0.5*this->GetExeTime() << " Ticks\n";
-    this->SetBurstTime(0.5*prev_burstTime + 0.5*this->GetExeTime());    // burstTime setup
-
-
-    // printing information
-    cout << "Tick[" << stats->totalTicks << "]: Thread[" << nextThread->getID() 
-         << "] is now selected for execution\n"
-         << "Tick[" << stats->totalTicks << "]: Thread[" << this->getID() 
-         << "] is replaced and it has executed [" << this->GetExeTime() << "] ticks\n";
-
-    this->SetExeTime(0);
-    this->L3time = 0;
     kernel->scheduler->Run(nextThread, finishing); 
 }
 
@@ -484,52 +433,4 @@ Thread::SelfTest()
     t->Fork((VoidFunctionPtr) SimpleThread, (void *) 1);
     kernel->currentThread->Yield();
     SimpleThread(0);
-}
-
-void Thread::SetBurstTime(int t)
-{
-    this->BurstTime = t;
-    return;
-}
-
-void Thread::SetExeTime(int t)
-{
-    this->ExeTime = t;
-    return;
-}
-
-void Thread::SetWaitTime(int t)
-{
-    this->WaitTime = t;
-    return;
-}
-
-void Thread::SetPriority(int p)
-{
-    if (p >= HighestPriority)
-        Priority = HighestPriority;
-    else
-        Priority = p;
-
-    return;
-}
-
-int Thread::GetBurstTime()
-{
-    return this->BurstTime;
-}
-
-int Thread::GetWaitTime()
-{
-    return this->WaitTime;
-}
-
-int Thread::GetPriority()
-{
-    return this->Priority;
-}
-
-int Thread::GetExeTime()
-{
-    return this->ExeTime;
 }
