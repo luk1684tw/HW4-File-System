@@ -43,7 +43,7 @@ Directory::Directory(int size)
 	
     tableSize = size;
     for (int i = 0; i < tableSize; i++)
-	table[i].inUse = FALSE;
+	    table[i].inUse = FALSE;
 }
 
 //----------------------------------------------------------------------
@@ -159,7 +159,7 @@ Directory::Remove(char *name)
     int i = FindIndex(name);
 
     if (i == -1)
-	return FALSE; 		// name not in directory
+	    return FALSE; 		// name not in directory
     table[i].inUse = FALSE;
     return TRUE;	
 }

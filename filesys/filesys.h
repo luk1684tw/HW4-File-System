@@ -91,6 +91,9 @@ class FileSystem {
 	int Read(char *buffer, int size, int id);
 	int Write(char *buffer, int size, int id);
 	int Close(int id);
+
+	OpenFile* opfile;
+
   private:
    OpenFile* freeMapFile;		// Bit map of free disk blocks,
 					// represented as a file

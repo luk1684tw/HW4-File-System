@@ -75,10 +75,10 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 	return FALSE;		// not enough space
 
     for (int i = 0; i < numSectors; i++) {
-	dataSectors[i] = freeMap->FindAndSet();
-	// since we checked that there was enough free space,
-	// we expect this to succeed
-	ASSERT(dataSectors[i] >= 0);
+		dataSectors[i] = freeMap->FindAndSet();
+		// since we checked that there was enough free space,
+		// we expect this to succeed
+		ASSERT(dataSectors[i] >= 0);
     }
     return TRUE;
 }
@@ -94,8 +94,8 @@ void
 FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
     for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
+		ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+		freeMap->Clear((int) dataSectors[i]);
     }
 }
 

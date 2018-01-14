@@ -246,25 +246,27 @@ FileSystem::Open(char *name)
     if (sector >= 0) 		
 	openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
+    opfile = openFile;
     return openFile;				// return NULL if not found
 }
 
 int 
 FileSystem::Read(char *buffer, int size, int id)
 {
-    
+    return opfile->Read(buffer, size);
 }
 
 int 
 FileSystem::Write(char *buffer, int size, int id)
 {
-    
+    return opfile->Write(buffer, size);
 }
 
 int 
 FileSystem::Close(int id)
 {
-  
+    opfile = NULL;
+    return 1;
 }
 //----------------------------------------------------------------------
 // FileSystem::Remove
