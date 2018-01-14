@@ -249,6 +249,23 @@ FileSystem::Open(char *name)
     return openFile;				// return NULL if not found
 }
 
+int 
+FileSystem::Read(char *buffer, int size, int id)
+{
+    
+}
+
+int 
+FileSystem::Write(char *buffer, int size, int id)
+{
+    
+}
+
+int 
+FileSystem::Close(int id)
+{
+  
+}
 //----------------------------------------------------------------------
 // FileSystem::Remove
 // 	Delete a file from the file system.  This requires:

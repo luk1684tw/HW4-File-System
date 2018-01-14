@@ -37,17 +37,17 @@ int SysCreate(char *filename,int initialSize)
 
 int SysOpen(char *filename)
 {
-	return kernel->interupt->Open(filename);
+	return kernel->interrupt->Open(filename);
 }
 
 int SysRead(char *buffer, int size, int id)
 {
-	return kernel->interupt->Read(buffer,size,id);
+	return kernel->interrupt->Read(buffer,size,id);
 }
 
 int SysWrite(char *buffer, int size, int id)
 {
-    return kernel->interupt->Write(buffer,size,id);
+    return kernel->interrupt->Write(buffer,size,id);
 }
 
 int SysClose(int id)
