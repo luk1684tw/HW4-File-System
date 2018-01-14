@@ -26,7 +26,7 @@ int SysAdd(int op1, int op2)
   return op1 + op2;
 }
 
-#ifdef FILESYS_STUB
+//#ifdef FILESYS_STUB
 int SysCreate(char *filename,int initialSize)
 {
 	// return value
@@ -54,7 +54,7 @@ int SysClose(int id)
 {
    return kernel->interrupt->Close(id); 
 }
-#endif
+//#endif
 
 
 #endif /* ! __USERPROG_KSYSCALL_H__ */

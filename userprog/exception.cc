@@ -75,7 +75,7 @@ ExceptionHandler(ExceptionType which)
 			SysHalt();
 			ASSERTNOTREACHED();
 			break;
-		#ifdef FILESYS_STUB
+		//#ifdef FILESYS_STUB
 		case SC_Create:
 			val = kernel->machine->ReadRegister(4);
 			size = kernel->machine->ReadRegister(5);
@@ -146,7 +146,7 @@ ExceptionHandler(ExceptionType which)
 			return;
 			ASSERTNOTREACHED();
             break;		
-		#endif
+		//#endif
       	case SC_Add:
 			DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 			/* Process SysAdd Systemcall*/

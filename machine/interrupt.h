@@ -106,9 +106,9 @@ class Interrupt {
 
     int Close(int id);
 
-	#ifdef FILESYS_STUB
-	int CreateFile(char *filename);
-	#endif 
+	//#ifdef FILESYS_STUB
+	//int CreateFile(char *filename);
+	//#endif 
 
     void YieldOnReturn();	// cause a context switch on return 
 				// from an interrupt handler
