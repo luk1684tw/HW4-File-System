@@ -95,6 +95,17 @@ class Interrupt {
     void Halt(); 		// quit and print out stats
 
     void PrintInt(int number);
+
+    int CreateFile(char *filename, int initialSize);
+    
+    int Open(char *filename);
+
+    int Write(char *buffer, int size, int id); 
+
+    int Read(char *buffer, int size, int id); 
+
+    int Close(int id);
+
 	#ifdef FILESYS_STUB
 	int CreateFile(char *filename);
 	#endif 

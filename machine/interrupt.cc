@@ -249,10 +249,35 @@ Interrupt::Halt()
 
 #ifdef FILESYS_STUB
 int
-Interrupt::CreateFile(char *filename)
+Interrupt::CreateFile(char *filename,int initialSize)
 {
-    return kernel->CreateFile(filename);
+    return kernel->CreateFile(filename,initialSize);
 }
+    
+int 
+Interrupt::Open(char *filename)
+{
+    return kernel->Open(filename);
+}
+
+int 
+Interrupt::Read(char *buffer, int size, int id)
+{
+    return kernel->Read(buffer, size, id);
+} 
+
+int 
+Interrupt::Write(char *buffer, int size, int id)
+{
+    return kernel->Write(buffer, size, id);
+} 
+
+int 
+Interrupt::Close(int id)
+{
+    return kernel->Close(id);
+}
+
 #endif
 
 //----------------------------------------------------------------------

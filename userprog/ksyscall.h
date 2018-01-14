@@ -27,12 +27,32 @@ int SysAdd(int op1, int op2)
 }
 
 #ifdef FILESYS_STUB
-int SysCreate(char *filename)
+int SysCreate(char *filename,int initialSize)
 {
 	// return value
 	// 1: success
 	// 0: failed
-	return kernel->interrupt->CreateFile(filename);
+	return kernel->interrupt->CreateFile(filename,initialSize);
+}
+
+int SysOpen(char *filename)
+{
+	return kernel->interupt->Open(filename);
+}
+
+int SysRead(char *buffer, int size, int id)
+{
+	return kernel->interupt->Read(buffer,size,id);
+}
+
+int SysWrite(char *buffer, int size, int id)
+{
+    return kernel->interupt->Write(buffer,size,id);
+}
+
+int SysClose(int id)
+{
+   return kernel->interrupt->Close(id); 
 }
 #endif
 
