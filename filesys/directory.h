@@ -63,7 +63,7 @@ class Directory {
     int Find(char *name);		// Find the sector number of the 
 					// FileHeader for file: "name"
 
-    bool Add(char *name, int newSector,char inType);  // Add a file name into the directory
+    bool Add(char *name, int newSector,char type);  // Add a file name into the directory
 
     bool Remove(char *name);		// Remove a file from the directory
 
@@ -94,8 +94,8 @@ class Directory {
     DirectoryEntry *table;		// Table of pairs: 
 					// <file name, file header location> 
 
-    int FindIndex(char *name);		// Find the index into the directory 
-					//  table corresponding to "name"
+    int FindIndex(char *name);		// Find the index into the directory table
+                                  // corresponding to "name"
 };
 
 #endif // DIRECTORY_H

@@ -92,6 +92,8 @@ class FileSystem {
 	int Write(char *buffer, int size, int id);
 	int Close(int id);
 
+	int CreateDir(char* name);
+
 	OpenFile* opfile;
 
   private:
