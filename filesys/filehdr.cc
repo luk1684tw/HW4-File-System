@@ -38,6 +38,8 @@
 //----------------------------------------------------------------------
 FileHeader::FileHeader()
 {
+	nextFileHeader = NULL;
+	nextFileHeaderSector = -1;
 	numBytes = -1;
 	numSectors = -1;
 	memset(dataSectors, -1, sizeof(dataSectors));
@@ -52,7 +54,8 @@ FileHeader::FileHeader()
 //----------------------------------------------------------------------
 FileHeader::~FileHeader()
 {
-	// nothing to do now
+	if(nextFileHeader != NULL)
+        delete nextFileHeader;
 }
 
 //----------------------------------------------------------------------
@@ -69,8 +72,11 @@ FileHeader::~FileHeader()
 bool
 FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 { 
-    numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
+    //numBytes = fileSize;
+	numBytes = (fileSize < MaxFileSize) ? fileSize : MaxFileSize; // Clamp numBytes to MaxFileSize
+    fileSize =  fileSize - numBytes;
+
+    numSectors  = divRoundUp(numBytes, SectorSize);
     if (freeMap->NumClear() < numSectors)
 	return FALSE;		// not enough space
 
@@ -80,6 +86,20 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 		// we expect this to succeed
 		ASSERT(dataSectors[i] >= 0);
     }
+
+	if(fileSize > 0)
+    {
+        nextFileHeaderSector = freeMap->FindAndSet();	// find a sector to hold the file header
+        if (nextFileHeaderSector == -1)
+            return FALSE;	// no free block for file header   
+        else
+        {
+            nextFileHeader = new FileHeader;
+            return nextFileHeader->Allocate(freeMap, fileSize);
+        }
+    }
+
+
     return TRUE;
 }
 
@@ -97,6 +117,12 @@ FileHeader::Deallocate(PersistentBitmap *freeMap)
 		ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 		freeMap->Clear((int) dataSectors[i]);
     }
+
+    if(nextFileHeaderSector != -1)
+    {
+        ASSERT(nextFileHeader != NULL);
+        nextFileHeader->Deallocate(freeMap);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -109,8 +135,14 @@ FileHeader::Deallocate(PersistentBitmap *freeMap)
 void
 FileHeader::FetchFrom(int sector)
 {
-    kernel->synchDisk->ReadSector(sector, (char *)this);
-	
+    //kernel->synchDisk->ReadSector(sector, (char *)this);
+    kernel->synchDisk->ReadSector(sector, ((char *)this) + sizeof(FileHeader*));
+    
+    if(nextFileHeaderSector != -1)
+    {
+        nextFileHeader = new FileHeader();
+        nextFileHeader->FetchFrom(nextFileHeaderSector);
+    }
 	/*
 		MP4 Hint:
 		After you add some in-core informations, you will need to rebuild the header's structure
@@ -128,8 +160,15 @@ FileHeader::FetchFrom(int sector)
 void
 FileHeader::WriteBack(int sector)
 {
-    kernel->synchDisk->WriteSector(sector, (char *)this); 
-	
+    //kernel->synchDisk->WriteSector(sector, (char *)this); 
+    kernel->synchDisk->WriteSector(sector, ((char *)this) + sizeof(FileHeader*));
+    
+    if(nextFileHeaderSector != -1)
+    {
+        ASSERT(nextFileHeader != NULL);
+        nextFileHeader->WriteBack(nextFileHeaderSector);
+    }	
+
 	/*
 		MP4 Hint:
 		After you add some in-core informations, you may not want to write all fields into disk.
@@ -154,7 +193,15 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+	int index = offset / SectorSize;
+    if(index < NumDirect)
+        return (dataSectors[index]);
+    else
+	{
+        ASSERT(nextFileHeader != NULL); // if offset > maxfilesize, then we should have next file header
+        return nextFileHeader->ByteToSector(offset - MaxFileSize);
+    }
+    //return(dataSectors[offset / SectorSize]);
 }
 
 //----------------------------------------------------------------------
