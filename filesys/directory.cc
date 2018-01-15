@@ -111,11 +111,34 @@ Directory::FindIndex(char *name)
 int
 Directory::Find(char *name)
 {
-    int i = FindIndex(name);
+    name++; // what is this?
+    char localName[256] = {0}, localIdx = 0;
+    bool findNext = false;
+    while (name[0] != '\0') {
+        if (name[0] == '/') {
+            findNext = true;
+            break;
+        }
+        localName[localIdx++] = name[0];
+        name++; // what is this?
+    }
 
-    if (i != -1)
-	return table[i].sector;
-    return -1;
+    int i = FindIndex(name);
+    
+    if (i != -1){
+         if (findNext) {
+            //printf("Start to find next with %s..., directory sector: %d\n", name, table[i].sector);
+            OpenFile *openNextDir = new OpenFile(table[i].sector);
+            Directory *nextDir = new Directory(NumDirEntries);
+            nextDir->FetchFrom(openNextDir);
+            int result = nextDir->Find(name);
+            delete openNextDir;
+            delete nextDir;
+            return result;
+        } 
+        else return table[i].sector; 
+    }
+	else return -1;
 }
 
 //----------------------------------------------------------------------
@@ -134,6 +157,26 @@ Directory::Add(char *name, int newSector)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
+
+    char nameWithOnlyPath[256] = {0};
+    char nameWithOnlyFile[256] = {0};
+    int len = strlen(name), slashIdx , tempIdx = 0;
+
+    for (int i = len - 1; i >= 0; i--) {
+        if (name[i] == '/') {
+            slashIdx = i;
+            break;
+        }
+    }
+
+    for (int i = 0; i < slashIdx; i++)
+        nameWithOnlyPath[i] = name[i];
+    for (int i = slashIdx + 1; i < len; i++)
+        nameWithOnlyFile[tempIdx++] = name[i];
+
+    
+
+
 
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
@@ -174,7 +217,8 @@ Directory::List()
 {
    for (int i = 0; i < tableSize; i++)
 	if (table[i].inUse)
-	    printf("%s\n", table[i].name);
+        printf("[%d] %s %c\n",i ,table[i].name, table[i].type);
+	    //printf("%s\n", table[i].name);
 }
 
 //----------------------------------------------------------------------

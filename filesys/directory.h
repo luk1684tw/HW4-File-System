@@ -18,6 +18,7 @@
 #define DIRECTORY_H
 
 #include "openfile.h"
+#include "filehdr.h"
 
 #define FileNameMaxLen 		9	// for simplicity, we assume 
 					// file names are <= 9 characters long
@@ -36,6 +37,7 @@ class DirectoryEntry {
 					//   FileHeader for this file 
     char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
 					// the trailing '\0'
+    char type;      
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in
@@ -61,9 +63,17 @@ class Directory {
     int Find(char *name);		// Find the sector number of the 
 					// FileHeader for file: "name"
 
-    bool Add(char *name, int newSector);  // Add a file name into the directory
+    bool Add(char *name, int newSector,char inType);  // Add a file name into the directory
 
     bool Remove(char *name);		// Remove a file from the directory
+
+    void RecurRemove(PersistentBitmap *freeMap);
+
+    void deactiveEntry(int idx);
+
+    void recurList(int depth);
+
+    int FindIndex(char *name);
 
     void List();			// Print the names of all the files
 					//  in the directory
