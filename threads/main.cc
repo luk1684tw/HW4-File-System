@@ -156,8 +156,6 @@ static void
 CreateDirectory(char *name)
 {
 	// MP4 Assignment
-    if (!kernel->fileSystem->CreateDir(name))
-       printf("CreateDirectory: couldn't create directory %s\n", name);
 }
 
 //----------------------------------------------------------------------

@@ -247,38 +247,13 @@ Interrupt::Halt()
     delete kernel;	// Never returns.
 }
 
-//#ifdef FILESYS_STUB
+#ifdef FILESYS_STUB
 int
-Interrupt::CreateFile(char *filename,int initialSize)
+Interrupt::CreateFile(char *filename)
 {
-    return kernel->CreateFile(filename,initialSize);
+    return kernel->CreateFile(filename);
 }
-    
-int 
-Interrupt::Open(char *filename)
-{
-    return kernel->Open(filename);
-}
-
-int 
-Interrupt::Read(char *buffer, int size, int id)
-{
-    return kernel->Read(buffer, size, id);
-} 
-
-int 
-Interrupt::Write(char *buffer, int size, int id)
-{
-    return kernel->Write(buffer, size, id);
-} 
-
-int 
-Interrupt::Close(int id)
-{
-    return kernel->Close(id);
-}
-
-//#endif
+#endif
 
 //----------------------------------------------------------------------
 // Interrupt::Schedule

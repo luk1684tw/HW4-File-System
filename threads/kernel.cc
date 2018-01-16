@@ -329,33 +329,10 @@ int Kernel::Exec(char* name)
 //  cout << "after ThreadedKernel:Run();" << endl;  // unreachable
 }
 
-//#ifdef FILESYS_STUB
-int Kernel::CreateFile(char *filename,int initialSize)
+#ifdef FILESYS_STUB
+int Kernel::CreateFile(char *filename)
 {
-	return fileSystem->Create(filename,initialSize);
+	return fileSystem->Create(filename);
 }
-
-int Kernel::Open(char *filename) 
-{
-    int fileID = (int)fileSystem->Open(filename);
-    if(fileID!=0) return fileID;
-    return -1; 
-}
-
-int Kernel::Write(char *buffer, int size, int id) 
-{
-    return fileSystem->Write(buffer, size, id); 
-}
-
-int Kernel::Read(char *buffer, int size, int id) 
-{
-    return fileSystem->Read(buffer, size, id); 
-}
-
-int Kernel::Close(int id) 
-{
-    return fileSystem->Close(id); 
-}
-
-//#endif
+#endif
 
