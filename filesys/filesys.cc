@@ -62,7 +62,7 @@
 // supports extensible files, the directory size sets the maximum number 
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize 	(NumSectors / BitsInByte)
-#define NumDirEntries 		10
+#define NumDirEntries 		64
 #define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -202,24 +202,72 @@ FileSystem::Create(char *name, int initialSize)
         sector = freeMap->FindAndSet();	// find a sector to hold the file header
     	if (sector == -1) 		
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector, 'F'))
             success = FALSE;	// no space in directory
-	else {
+	    else {
+            cout << "add directory succeed\n";
     	    hdr = new FileHeader;
-	    if (!hdr->Allocate(freeMap, initialSize))
+	        if (!hdr->Allocate(freeMap, initialSize))
             	success = FALSE;	// no space on disk for data
-	    else {	
-	    	success = TRUE;
-		// everthing worked, flush all changes back to disk
-    	    	hdr->WriteBack(sector); 		
+	        else {	
+                cout << "allocate space for data block succeed\n";
+	    	    success = TRUE;
+		    // everthing worked, flush all changes back to disk
+    	    	hdr->WriteBack(sector);
+                cout << "header write back succeed\n";
     	    	directory->WriteBack(directoryFile);
+                cout << "directory write back succeed\n";
     	    	freeMap->WriteBack(freeMapFile);
-	    }
+                cout << "map write back succeed\n";
+	        }
             delete hdr;
-	}
+	    }
         delete freeMap;
     }
     delete directory;
+    return success;
+}
+
+bool FileSystem::CreateDir(char* name) 
+{
+    Directory* directory;
+    PersistentBitmap* freemap;
+    FileHeader* hdr;
+    int sector;
+    bool success;
+
+    DEBUG(dbgFile, "Creating Directory " << name);
+    directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+    
+    if (directory->Find(name) != -1) {
+        cout << "directory already exist!\n";
+        success = false;
+    } else {
+        freemap = new PersistentBitmap(freeMapFile, NumSectors);
+        sector = freemap->FindAndSet();
+        if (sector == -1) {
+            cout << "No enough space for file header\n";
+            success = false;
+        } else if (!directory->Add(name, sector, 'D')) {
+            cout << "directory full\n";
+            success = false;
+        } else {
+            hdr = new FileHeader;
+            if (!hdr->Allocate(freemap, DirectoryFileSize)) {
+                cout << "no enough disk space for data blocks\n";
+                success = false;
+            } else {
+                success = true;
+                hdr->WriteBack(sector);
+                freemap->WriteBack(freeMapFile);
+                directory->WriteBack(directoryFile);
+            }
+        }
+    }
+    delete hdr;
+    delete directory;
+    delete freemap;
     return success;
 }
 
@@ -244,10 +292,11 @@ FileSystem::Open(char *name)
     directory->FetchFrom(directoryFile);
     sector = directory->Find(name); 
     if (sector >= 0) 		
-	openFile = new OpenFile(sector);	// name was found in directory 
+	    openFile = new OpenFile(sector);	// name was found in directory
     delete directory;
     opfile = openFile;
-    return openFile;				// return NULL if not found
+    delete openFile;
+    return opfile;				// return NULL if not found
 }
 
 int 
@@ -265,7 +314,7 @@ FileSystem::Write(char *buffer, int size, int id)
 int 
 FileSystem::Close(int id)
 {
-    opfile = NULL;
+    delete opfile;
     return 1;
 }
 //----------------------------------------------------------------------
@@ -314,6 +363,10 @@ FileSystem::Remove(char *name)
     return TRUE;
 } 
 
+bool RecursiveRemove(char* name)
+{
+    cout << "Recursive Remove remain unfinished\n";
+}
 //----------------------------------------------------------------------
 // FileSystem::List
 // 	List all the files in the file system directory.
@@ -327,6 +380,11 @@ FileSystem::List()
     directory->FetchFrom(directoryFile);
     directory->List();
     delete directory;
+}
+
+void RecursiveList(char* directoryName)
+{
+    cout << "Recursive List remain unfinished\n";
 }
 
 //----------------------------------------------------------------------

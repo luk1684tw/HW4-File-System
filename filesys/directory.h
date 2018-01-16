@@ -22,6 +22,7 @@
 
 #define FileNameMaxLen 		9	// for simplicity, we assume 
 					// file names are <= 9 characters long
+#define NumDirEntries     64
 
 // The following class defines a "directory entry", representing a file
 // in the directory.  Each entry gives the name of the file, and where
@@ -71,9 +72,9 @@ class Directory {
 
     void deactiveEntry(int idx);
 
-    void recurList(int depth);
+    void RecursiveList(int depth);
 
-    int FindIndex(char *name);
+    //int FindIndex(char *name);
 
     void List();			// Print the names of all the files
 					//  in the directory
