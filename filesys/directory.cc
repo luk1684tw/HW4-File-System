@@ -111,11 +111,37 @@ Directory::FindIndex(char *name)
 int
 Directory::Find(char *name)
 {
+    cout << "Directory::Find, name: " << name << endl;
+    name++;
+    char localName[256] = {0};
+    int localIdx = 0;
+    bool findNext = false;
+    while (name[0] != '\0') {
+        if (name[0] == '/') {
+            findNext = true;
+            break;
+        }
+        localName[localIdx++] = name[0];
+        name++;
+    }
+
     int i = FindIndex(name);
 
-    if (i != -1)
-	return table[i].sector;
-    return -1;
+    if (i != -1) {
+        if (findNext) {
+            Openfile* openNextDir = new Openfile(table[i].sector);
+            Directory* nextDir = new Directory(NumDirEntries);
+            nextDir->FetchFrom(openNextDir);
+            int result = nextDir->find(name);
+            delete openNextDir;
+            delete nextDir;
+            return result;
+        } else {
+            return table[i].sector;
+        }
+    } else {
+        return -1;
+    }
 }
 
 //----------------------------------------------------------------------
