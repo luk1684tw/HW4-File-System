@@ -202,7 +202,7 @@ FileSystem::Create(char *name, int initialSize)
         sector = freeMap->FindAndSet();	// find a sector to hold the file header
     	if (sector == -1) 		
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector ,'F'))
             success = FALSE;	// no space in directory
 	else {
     	    hdr = new FileHeader;
@@ -223,6 +223,47 @@ FileSystem::Create(char *name, int initialSize)
     return success;
 }
 
+bool 
+FileSystem::CreateDir(char *name)
+{
+    Directory *directory;
+    PersistentBitmap *freeMap;
+    FileHeader *hdr;
+    int sector;
+    bool success;
+
+    directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+
+    if (directory->Find(name) != -1) 
+        success = FALSE;
+    else
+    {
+        freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+        sector = freeMap->FindAndSet();
+        if (sector == -1) 
+            success = FALSE;
+        else if(!directory->Add(name, sector, 'D'))
+            success = FALSE;    
+        else
+        {
+            hdr = new FileHeader;
+            if (!hdr->Allocate(freeMap, DirectoryFileSize))
+                success = FALSE;
+            else
+            {
+                success = TRUE;
+                hdr->WriteBack(sector);
+                directory->WriteBack(directoryFile);
+                freeMap->WriteBack(freeMapFile);      
+            }
+            delete hdr;
+        }
+        delete freeMap;
+    }
+    delete directory;
+    return success;
+}
 //----------------------------------------------------------------------
 // FileSystem::Open
 // 	Open a file for reading and writing.  
@@ -232,7 +273,6 @@ FileSystem::Create(char *name, int initialSize)
 //
 //	"name" -- the text name of the file to be opened
 //----------------------------------------------------------------------
-
 OpenFile *
 FileSystem::Open(char *name)
 { 
@@ -321,14 +361,60 @@ FileSystem::Remove(char *name)
 //----------------------------------------------------------------------
 
 void
-FileSystem::List()
+FileSystem::List(char *listDirectoryName)
 {
-    Directory *directory = new Directory(NumDirEntries);
+    //Directory *directory = new Directory(NumDirEntries);
+    if (strlen(listDirectoryName) == 1)
+    {
+        Directory *directory = new Directory(NumDirEntries);
+        directory->FetchFrom(directoryFile);
+        directory->List();
+        delete directory;
+    }
+    else
+    {
+        Directory *directory = new Directory(NumDirEntries);
+        directory->FetchFrom(directoryFile);
 
-    directory->FetchFrom(directoryFile);
-    directory->List();
-    delete directory;
+        int targetSector = directory->Find(listDirectoryName);
+        OpenFile *dirFile = new OpenFile(targetSector);
+        
+        Directory *dir = new Directory(NumDirEntries);
+        dir->FetchFrom(dirFile);
+        dir->List();
+
+        delete directory;
+        delete dirFile;
+        delete dir;
+    }
+    //directory->FetchFrom(directoryFile);
+    //directory->List();
+    //delete directory;
 }
+
+void FileSystem::recurList(char *listDirectoryName) {
+     if (strlen(listDirectoryName) == 1) {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         directory->recurList(0);
+         delete directory;
+     } else {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         int targetSector = directory->Find(listDirectoryName);
+         OpenFile *dirFile = new OpenFile(targetSector);
+         Directory *dir = new Directory(NumDirEntries);
+         dir->FetchFrom(dirFile);
+         dir->recurList(0);
+         delete directory;
+         delete dirFile;
+         delete dir;
+     }
+}
+
+
+
+
 
 //----------------------------------------------------------------------
 // FileSystem::Print
