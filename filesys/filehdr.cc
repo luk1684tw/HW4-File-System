@@ -120,6 +120,7 @@ FileHeader::Deallocate(PersistentBitmap *freeMap)
 			lastSectorNum = nowNumSectors + SectorNumPerList;
 
 		int* buffer = new int[SectorNumPerList];
+		kernel->synchDisk->ReadSector(dataSectorLists[i], (char*) buffer);
 		for (int j = 0; j < lastSectorNum; j++) {
 			ASSERT(freeMap->Test((int) buffer[j]));
 			freeMap->Clear((int)buffer[j]);

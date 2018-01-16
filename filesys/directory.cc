@@ -93,9 +93,12 @@ Directory::WriteBack(OpenFile *file)
 int
 Directory::FindIndex(char *name)
 {
-    for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
-	    return i;
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse&& !strncmp(table[i].name, name, FileNameMaxLen)) { 
+	        cout << "Name: " << table[i].name << endl;
+            return 1;
+        }
+    }
     return -1;		// name not in directory
 }
 
@@ -114,7 +117,7 @@ Directory::Find(char *name)
     cout << "Directory::Find, name: " << name << endl;
     name++;
     char localName[256] = {0};
-    int localIdx = 0;
+    char localIdx = 0;
     bool findNext = false;
     while (name[0] != '\0') {
         if (name[0] == '/') {
@@ -124,9 +127,9 @@ Directory::Find(char *name)
         localName[localIdx++] = name[0];
         name++;
     }
-
-    int i = FindIndex(name);
-
+    cout << "localName: " << localName << endl;
+    int i = FindIndex(localName);
+    //cout << "i: " << i << endl;
     if (i != -1) {
         if (findNext) {
             OpenFile* openNextDir = new OpenFile(table[i].sector);
@@ -163,7 +166,7 @@ Directory::Add(char *name, int newSector, char inType)
     char nameWithOnlyPath[256] = {0};
     char nameWithOnlyFile[256] = {0};
     int len = strlen(name), slashIdx, tempIdx = 0;
-    for (int i = len - 1; i >= 0; i++) {
+    for (int i = len - 1; i >= 0; i--) {
         if (name[i] == '/') {
             slashIdx = i;
             break;
@@ -200,7 +203,7 @@ Directory::Add(char *name, int newSector, char inType)
         for (int i = 0; i < tableSize; i++) {
             if (!table[i].inUse) {
                 table[i].inUse = true;
-                strncpy(table[i].name, name, FileNameMaxLen);
+                strncpy(table[i].name, nameWithOnlyFile, FileNameMaxLen);
                 table[i].sector = newSector;
                 table[i].type = inType;
                 return true;
@@ -257,7 +260,7 @@ Directory::Remove(char *name)
         delete nextDir;
         return true;
     } else {
-        int idx = this->FindIndex(nameWithOnlyFile);
+        int idx = this->FindIndex(name);
         if (idx == -1)
             return false;
         this->table[idx].inUse = false;
@@ -274,7 +277,7 @@ void
 Directory::List()
 {
    for (int i = 0; i < tableSize; i++) {
-	    if (table[i].inUse)
+	    //if (table[i].inUse)
 	        printf("[Entry No.%d]: %s %c\n", i, table[i].name, table[i].type);
    }
    return;
@@ -313,12 +316,13 @@ Directory::Print()
     FileHeader *hdr = new FileHeader;
 
     printf("Directory contents:\n");
-    for (int i = 0; i < tableSize; i++)
-	if (table[i].inUse) {
-	    printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
-	    hdr->FetchFrom(table[i].sector);
-	    hdr->Print();
-	}
+    for (int i = 0; i < tableSize; i++) {
+        //if (table[i].inUse) {
+            printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
+            hdr->FetchFrom(table[i].sector);
+            hdr->Print();
+	    //}
+    }
     printf("\n");
     delete hdr;
 }
