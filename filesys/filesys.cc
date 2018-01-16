@@ -201,22 +201,22 @@ FileSystem::Create(char *name, int initialSize)
         freeMap = new PersistentBitmap(freeMapFile,NumSectors);
         sector = freeMap->FindAndSet();	// find a sector to hold the file header
     	if (sector == -1) 	{
-            cout << "can't find a sector to hold fhdr\n";
+            //cout << "can't find a sector to hold fhdr\n";
             success = FALSE;		// no free block for file header 
         }	
         else if (!directory->Add(name, sector ,'F')) {
-            cout << "Add directory wrong\n";
+            //cout << "Add directory wrong\n";
             success = FALSE;	// no space in directory
         
 	    } else {
     	    hdr = new FileHeader;
 	        if (!hdr->Allocate(freeMap, initialSize)){
-                cout << "no space on disk for data\n";
+                //cout << "no space on disk for data\n";
                 success = FALSE;	// no space on disk for data
             }
 	        else {	
-                cout << "create file succeed\n";
-                directory->List();
+                //cout << "create file succeed\n";
+                //directory->List();
 	    	    success = TRUE;
 		    // everthing worked, flush all changes back to disk
     	    	hdr->WriteBack(sector); 		
@@ -234,7 +234,7 @@ FileSystem::Create(char *name, int initialSize)
 bool 
 FileSystem::CreateDir(char *name)
 {
-    cout << "test!!\n";
+    //cout << "test!!\n";
     Directory *directory;
     PersistentBitmap *freeMap;
     FileHeader *hdr;
@@ -296,7 +296,7 @@ FileSystem::Open(char *name)
 	    openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
     opfile = openFile;
-    cout << "sector: " << sector << endl;
+    //cout << "sector: " << sector << endl;
     return openFile;				// return NULL if not found
 }
 

@@ -70,29 +70,30 @@ FileHeader::~FileHeader()
 bool
 FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 { 
-	char emptybuf[128] = {0};
+	char empty[128] = {0};
+	numSectors  = divRoundUp(fileSize, SectorSize);
     numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-	numLists = divRoundUp(numSectors, SectorNumPerList);
+    numLists = divRoundUp(numSectors, SectorNumPerList);
+
     if (freeMap->NumClear() < numSectors)
 		return FALSE;		// not enough space
 
-	int nowNumSectors = 0;
-	for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
+	int SectorsRead = 0;
+	for (int i = 0; i < numLists; i++, SectorsRead += SectorNumPerList) {
 		dataSectorLists[i] = freeMap->FindAndSet();
 		ASSERT(dataSectorLists[i] >= 0);
 
 		int lastSectorNum;
-		if (nowNumSectors + SectorNumPerList > NumSectors)
+		if (SectorsRead + SectorNumPerList > NumSectors)
 			lastSectorNum = NumSectors;
 		else
-			lastSectorNum = nowNumSectors + SectorNumPerList;
+			lastSectorNum = SectorsRead + SectorNumPerList;
 		
 		int *buffer = new int[SectorNumPerList];
 		memset(buffer, 0, sizeof(int)*SectorNumPerList);
-		for (int j = 0; j < lastSectorNum - nowNumSectors; j++) {
+		for (int j = 0; j < lastSectorNum - SectorsRead; j++) {
 			buffer[j] = freeMap->FindAndSet();
-			kernel->synchDisk->WriteSector(buffer[j], emptybuf);
+			kernel->synchDisk->WriteSector(buffer[j], empty);
 			ASSERT(buffer[j] >= 0);
 		}
 		kernel->synchDisk->WriteSector(dataSectorLists[i], (char*) buffer);
@@ -111,13 +112,13 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
-	int nowNumSectors = 0;
-	for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
+	int SectorsRead = 0;
+	for (int i = 0; i < numLists; i++, SectorsRead += SectorNumPerList) {
 		int lastSectorNum;
-		if (nowNumSectors + SectorNumPerList > numSectors)
+		if (SectorsRead + SectorNumPerList > numSectors)
 			lastSectorNum = numSectors;
 		else 
-			lastSectorNum = nowNumSectors + SectorNumPerList;
+			lastSectorNum = SectorsRead + SectorNumPerList;
 
 		int* buffer = new int[SectorNumPerList];
 		kernel->synchDisk->ReadSector(dataSectorLists[i], (char*) buffer);
@@ -140,12 +141,6 @@ void
 FileHeader::FetchFrom(int sector)
 {
     kernel->synchDisk->ReadSector(sector, (char *)this);
-	
-	/*
-		MP4 Hint:
-		After you add some in-core informations, you will need to rebuild the header's structure
-	*/
-	
 }
 
 //----------------------------------------------------------------------
@@ -159,16 +154,6 @@ void
 FileHeader::WriteBack(int sector)
 {
     kernel->synchDisk->WriteSector(sector, (char *)this); 
-	
-	/*
-		MP4 Hint:
-		After you add some in-core informations, you may not want to write all fields into disk.
-		Use this instead:
-		char buf[SectorSize];
-		memcpy(buf + offset, &dataToBeWritten, sizeof(dataToBeWritten));
-		...
-	*/
-	
 }
 
 //----------------------------------------------------------------------
@@ -185,15 +170,15 @@ int
 FileHeader::ByteToSector(int offset)
 {
     //return(dataSectors[offset / SectorSize]);
-	 int sectorIdx = offset / SectorSize;
+	 int sectorID = offset / SectorSize;
      // calculate where is it stored
-     int listIdx = sectorIdx / SectorNumPerList, idxInList = sectorIdx % SectorNumPerList;
+     int listID = sectorID / SectorNumPerList, idInList = sectorID % SectorNumPerList;
      // buf to read in
-     int *buf = new int[SectorNumPerList];
-     kernel->synchDisk->ReadSector(dataSectorLists[listIdx], (char *) buf);
+     int *buffer = new int[SectorNumPerList];
+     kernel->synchDisk->ReadSector(dataSectorLists[listID], (char *) buffer);
      // get the SectorNum
-     int retVal = buf[idxInList];
-     delete [] buf;
+     int retVal = buffer[idInList];
+     delete [] buffer;
      return retVal;
 }
 
@@ -222,7 +207,7 @@ FileHeader::Print()
 
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
     for (i = 0; i < numSectors; i++)
-	printf("%d ", dataSectors[i]);
+		printf("%d ", dataSectors[i]);
 	
     printf("\nFile contents:\n");
     for (i = k = 0; i < numSectors; i++) {
@@ -236,32 +221,4 @@ FileHeader::Print()
         printf("\n"); 
     }
     delete [] data;*/
-    printf("FileHeader contents.  File size: %d.  List blocks:\n", numBytes);
-    for (int i = 0; i < numLists; i++)
-        printf("%d ", dataSectorLists[i]);
-    printf("\n");
-
-    int nowNumSectors = 0, nowNumBytes = 0;
-    for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
-         // last Sector in this loop
-         int lastSectorNum;
-         if (nowNumSectors + SectorNumPerList > numSectors) lastSectorNum = numSectors;
-         else lastSectorNum = nowNumSectors + SectorNumPerList;
-         int *buf = new int[SectorNumPerList]; // buf to write in
-         kernel->synchDisk->ReadSector(dataSectorLists[i], (char *) buf);
-         printf("File contents in list %d, Sector %d:\n", i, dataSectorLists[i]);
-         for (int j = 0; j < lastSectorNum - nowNumSectors; j++) {
-             char *data = new char[SectorSize]; // check if buf[j] is marked and clear it
-             kernel->synchDisk->ReadSector(buf[j], (char *) data); // read the data the idx in the list points to
-             for (int k = 0; (k < SectorSize) && (nowNumBytes < numBytes); k++, nowNumBytes++) { // print it as original version
-                 if ('\040' <= data[k] && data[k] <= '\176')
-                     printf("%c", data[k]);
-                 else
-                     printf("\\%x", (unsigned char) data[k]);
-             }
-             printf("\n");
-             delete [] data;
-        }
-         delete [] buf;
-      }
 }

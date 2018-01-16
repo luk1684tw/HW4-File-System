@@ -95,8 +95,8 @@ Directory::FindIndex(char *name)
 {
     for (int i = 0; i < tableSize; i++) {
         if (table[i].inUse&& !strncmp(table[i].name, name, FileNameMaxLen)) { 
-	        cout << "Name: " << table[i].name << endl;
-            return 1;
+	        //cout << "Name: " << table[i].name << endl;
+            return i;
         }
     }
     return -1;		// name not in directory
@@ -114,7 +114,7 @@ Directory::FindIndex(char *name)
 int
 Directory::Find(char *name)
 {
-    cout << "Directory::Find, name: " << name << endl;
+    //cout << "Directory::Find, name: " << name << endl;
     name++;
     char localName[256] = {0};
     char localIdx = 0;
@@ -127,7 +127,7 @@ Directory::Find(char *name)
         localName[localIdx++] = name[0];
         name++;
     }
-    cout << "localName: " << localName << endl;
+    //cout << "localName: " << localName << endl;
     int i = FindIndex(localName);
     //cout << "i: " << i << endl;
     if (i != -1) {
@@ -276,10 +276,10 @@ Directory::Remove(char *name)
 void
 Directory::List()
 {
-   for (int i = 0; i < tableSize; i++) {
-	    //if (table[i].inUse)
+    for (int i = 0; i < tableSize; i++) {
+	    if (table[i].inUse)
 	        printf("[Entry No.%d]: %s %c\n", i, table[i].name, table[i].type);
-   }
+    }    
    return;
 }
 
@@ -298,7 +298,6 @@ void Directory::recurList(int depth)
                 nextDir->recurList(depth+1);
                 delete openNextDir;
                 delete nextDir;
-                return;
             }
         }
     }
@@ -317,11 +316,11 @@ Directory::Print()
 
     printf("Directory contents:\n");
     for (int i = 0; i < tableSize; i++) {
-        //if (table[i].inUse) {
+        if (table[i].inUse) {
             printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
             hdr->FetchFrom(table[i].sector);
             hdr->Print();
-	    //}
+	    }
     }
     printf("\n");
     delete hdr;
