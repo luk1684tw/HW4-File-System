@@ -168,7 +168,7 @@ Directory::Add(char *name, int newSector, char type)        // suppose name = /A
             break;
         }
     }
-
+    cout << "name: " << name << endl;
     for (int i = 0; i < slashIdx; i++)                      // get /A/B/C
         Path[i] = name[i];
     for (int i = slashIdx + 1; i < len; i++)                // get D
