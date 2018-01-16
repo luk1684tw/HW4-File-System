@@ -156,10 +156,37 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, char inType)
 { 
-    if (FindIndex(name) != -1)
-	return FALSE;
+    if (Find(name) != -1)
+	    return FALSE;
+    char nameWithOnlyPath[256] = {0};
+    char nameWithOnlyFile[256] = {0};
+    int len = strlen(name), slashIdx, tempIdx = 0;
+    for (int i = len - 1; i >= 0; i++) {
+        if (name[i] == '/') {
+            slashIdx = i;
+            break;
+        }
+    }
+
+    for (int i = 0; i < slashIdx; i++) {
+        nameWithOnlyPath[i] = name[i];
+    }
+    for (int i = slashIdx+1; i < len; i++) {
+        nameWithOnlyFile[tempIdx++] = name[i];
+    }
+
+    if (nameWithOnlyPath[0] != 0) {
+        int sector = Find(nameWithOnlyPath);
+        OpenFile* openNextDir = new OpenFile(sector);
+        Directory* nextDir = new Directory(NumDirEntries);
+        nextDir->FetchFrom(openNextDir);
+
+        for (int i = 0; i < tableSize; i++) {
+            
+        }
+    }
 
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
