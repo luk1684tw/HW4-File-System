@@ -111,11 +111,37 @@ Directory::FindIndex(char *name)
 int
 Directory::Find(char *name)
 {
+    cout << "Directory::Find, name: " << name << endl;
+    name++;
+    char localName[256] = {0};
+    int localIdx = 0;
+    bool findNext = false;
+    while (name[0] != '\0') {
+        if (name[0] == '/') {
+            findNext = true;
+            break;
+        }
+        localName[localIdx++] = name[0];
+        name++;
+    }
+
     int i = FindIndex(name);
 
-    if (i != -1)
-	return table[i].sector;
-    return -1;
+    if (i != -1) {
+        if (findNext) {
+            Openfile* openNextDir = new Openfile(table[i].sector);
+            Directory* nextDir = new Directory(NumDirEntries);
+            nextDir->FetchFrom(openNextDir);
+            int result = nextDir->find(name);
+            delete openNextDir;
+            delete nextDir;
+            return result;
+        } else {
+            return table[i].sector;
+        }
+    } else {
+        return -1;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -130,19 +156,58 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, char inType)
 { 
-    if (FindIndex(name) != -1)
-	return FALSE;
+    if (Find(name) != -1)
+	    return FALSE;
+    char nameWithOnlyPath[256] = {0};
+    char nameWithOnlyFile[256] = {0};
+    int len = strlen(name), slashIdx, tempIdx = 0;
+    for (int i = len - 1; i >= 0; i++) {
+        if (name[i] == '/') {
+            slashIdx = i;
+            break;
+        }
+    }
 
-    for (int i = 0; i < tableSize; i++)
-        if (!table[i].inUse) {
-            table[i].inUse = TRUE;
-            strncpy(table[i].name, name, FileNameMaxLen); 
-            table[i].sector = newSector;
-        return TRUE;
-	}
-    return FALSE;	// no space.  Fix when we have extensible files.
+    for (int i = 0; i < slashIdx; i++) {
+        nameWithOnlyPath[i] = name[i];
+    }
+    for (int i = slashIdx+1; i < len; i++) {
+        nameWithOnlyFile[tempIdx++] = name[i];
+    }
+
+    if (nameWithOnlyPath[0] != 0) {
+        int sector = Find(nameWithOnlyPath);
+        OpenFile* openNextDir = new OpenFile(sector);
+        Directory* nextDir = new Directory(NumDirEntries);
+        nextDir->FetchFrom(openNextDir);
+
+        for (int i = 0; i < tableSize; i++) {
+            if (!nextDir->table[i].inUse) {
+                nextDir->table[i].inUse = true;
+                strncpy(nextDir->table[i].name, nameWithOnlyFile, FileNameMaxLen);
+                nextDir->table[i].sector = newSector;
+                nextDir->table[i].type = inType;
+                nextDir->WriteBack(openNextDir);
+
+                delete openNextDir;
+                delete nextDir;
+                return true;
+            }
+        }
+    } else {
+        for (int i = 0; i < tableSize; i++) {
+            if (!table[i].inUse) {
+                table[i].inUse = true;
+                strncpy(table[i].name, name, FileNameMaxLen);
+                table[i].sector = newSector;
+                table[i].type = inType;
+                return true;
+            }
+        }
+    }
+    return false;   // no space.  Fix when we have extensible files.
 }
 
 //----------------------------------------------------------------------
@@ -155,13 +220,49 @@ Directory::Add(char *name, int newSector)
 
 bool
 Directory::Remove(char *name)
-{ 
-    int i = FindIndex(name);
+{
+    if (find(name) = -1)
+        return false;
+    
+    char nameWithOnlyPath[256] = {0};
+    char nameWithOnlyFile[256] = {0};
+    int len = strlen(name), tempIdx = 0, slashIdx;
+    for (int i = len-1; i >= 0; i--) {
+        if (name[i] == '/') {
+            slashIdx = i;
+            break;
+        }
+    }
 
-    if (i == -1)
-	    return FALSE; 		// name not in directory
-    table[i].inUse = FALSE;
-    return TRUE;	
+    for (int i = slashIdx + 1; i < len; i++) {
+        nameWithOnlyFile[tempIdx++] = name[i];
+    }
+    for (int i = 0; i < slashIdx; i++) {
+        nameWithOnlyPath[i] = name[i];
+    }
+    
+    if (nameWithOnlyPath[0] != 0) {
+        int sector = Find(nameWithOnlyPath);
+        OpenFile* openNextDir = new OpenFile(sector);
+        DIrectory* nextDir = new Directory(NumDirEntries);
+        nextDir->FetchFrom(openNextDir);
+
+        int idx = nextDir->FindIndex(nameWithOnlyFile);
+        if (idx == -1)
+            return false;
+        
+        nextDir->table[idx].inUse = false;
+        nextDir->WriteBack(openNextDir);
+        delete openNextDir;
+        delete nextDir;
+        return true;
+    } else {
+        int idx = this->FindIndex(nameWithOnlyFile);
+        if (idx == -1)
+            return false;
+        this->table[idx].inUse = false;
+        return true;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -172,9 +273,32 @@ Directory::Remove(char *name)
 void
 Directory::List()
 {
-   for (int i = 0; i < tableSize; i++)
-	if (table[i].inUse)
-	    printf("%s\n", table[i].name);
+   for (int i = 0; i < tableSize; i++) {
+	    if (table[i].inUse)
+	        printf("[Entry No.%d]: %s %c\n", i, table[i].name, table[i].type);
+   }
+   return;
+}
+
+void Directory::recurList(int depth)
+{
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse) {
+            for (int j = 0; j < depth*8; j++)
+                putchar(' ');
+            printf("[Entry No.%d]: %s %c\n", i, table[i].name, table[i].type);
+            if (table[i].type == 'D') {
+                OpenFile* openNextDir = new OpenFile(table[i].sector);
+                Directory* nextDir = new Directory(NumDirEntries);
+                nextDir->FetchFrom(openNextDir);
+
+                nextDir->recurList(depth+1);
+                delete openNextDir;
+                delete nextDir;
+                return;
+            }
+        }
+    }
 }
 
 //----------------------------------------------------------------------
