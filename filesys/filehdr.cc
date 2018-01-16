@@ -182,7 +182,17 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+    //return(dataSectors[offset / SectorSize]);
+	 int sectorIdx = offset / SectorSize;
+     // calculate where is it stored
+     int listIdx = sectorIdx / SectorNumPerList, idxInList = sectorIdx % SectorNumPerList;
+     // buf to read in
+     int *buf = new int[SectorNumPerList];
+     kernel->synchDisk->ReadSector(dataSectorLists[listIdx], (char *) buf);
+     // get the SectorNum
+     int retVal = buf[idxInList];
+     delete [] buf;
+     return retVal;
 }
 
 //----------------------------------------------------------------------
@@ -205,12 +215,13 @@ FileHeader::FileLength()
 void
 FileHeader::Print()
 {
-    int i, j, k;
+    /*int i, j, k;
     char *data = new char[SectorSize];
 
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
     for (i = 0; i < numSectors; i++)
 	printf("%d ", dataSectors[i]);
+	
     printf("\nFile contents:\n");
     for (i = k = 0; i < numSectors; i++) {
 	kernel->synchDisk->ReadSector(dataSectors[i], data);
@@ -222,5 +233,33 @@ FileHeader::Print()
 	}
         printf("\n"); 
     }
-    delete [] data;
+    delete [] data;*/
+    printf("FileHeader contents.  File size: %d.  List blocks:\n", numBytes);
+    for (int i = 0; i < numLists; i++)
+        printf("%d ", dataSectorLists[i]);
+    printf("\n");
+
+    int nowNumSectors = 0, nowNumBytes = 0;
+    for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
+         // last Sector in this loop
+         int lastSectorNum;
+         if (nowNumSectors + SectorNumPerList > numSectors) lastSectorNum = numSectors;
+         else lastSectorNum = nowNumSectors + SectorNumPerList;
+         int *buf = new int[SectorNumPerList]; // buf to write in
+         kernel->synchDisk->ReadSector(dataSectorLists[i], (char *) buf);
+         printf("File contents in list %d, Sector %d:\n", i, dataSectorLists[i]);
+         for (int j = 0; j < lastSectorNum - nowNumSectors; j++) {
+             char *data = new char[SectorSize]; // check if buf[j] is marked and clear it
+             kernel->synchDisk->ReadSector(buf[j], (char *) data); // read the data the idx in the list points to
+             for (int k = 0; (k < SectorSize) && (nowNumBytes < numBytes); k++, nowNumBytes++) { // print it as original version
+                 if ('\040' <= data[k] && data[k] <= '\176')
+                     printf("%c", data[k]);
+                 else
+                     printf("\\%x", (unsigned char) data[k]);
+             }
+             printf("\n");
+             delete [] data;
+        }
+         delete [] buf;
+      }
 }
