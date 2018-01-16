@@ -40,7 +40,6 @@ FileHeader::FileHeader()
 {
 	numBytes = -1;
 	numSectors = -1;
-	memset(dataSectors, -1, sizeof(dataSectors));
 	numLists = -1;
 	memset(dataSectorLists, -1, sizeof(dataSectorLists));
 }
@@ -94,7 +93,7 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 			buffer[j] = freeMap->FindAndSet();
 			ASSERT(buffer[j] >= 0);
 		}
-		kernel->synchDisk->WriteSector(dataSectorLists[i], buffer);
+		kernel->synchDisk->WriteSector(dataSectorLists[i], (char*) buffer);
 		delete [] buffer;
 	}
 	return true;
@@ -118,7 +117,7 @@ FileHeader::Deallocate(PersistentBitmap *freeMap)
 		else 
 			lastSectorNum = nowNumSectors + SectorNumPerList;
 
-		int buffer = new int[SectorNumPerList];
+		int* buffer = new int[SectorNumPerList];
 		for (int j = 0; j < lastSectorNum; j++) {
 			ASSERT(freeMap->Test((int) buffer[j]));
 			freeMap->Clear((int)buffer[j]);
