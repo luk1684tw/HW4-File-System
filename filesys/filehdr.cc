@@ -70,6 +70,7 @@ FileHeader::~FileHeader()
 bool
 FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 { 
+	char emptybuf[128] = {0};
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
 	numLists = divRoundUp(numSectors, SectorNumPerList);
@@ -91,6 +92,7 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 		memset(buffer, 0, sizeof(int)*SectorNumPerList);
 		for (int j = 0; j < lastSectorNum - nowNumSectors; j++) {
 			buffer[j] = freeMap->FindAndSet();
+			kernel->synchDisk->WriteSector(buffer[j], emptybuf);
 			ASSERT(buffer[j] >= 0);
 		}
 		kernel->synchDisk->WriteSector(dataSectorLists[i], (char*) buffer);
