@@ -129,10 +129,10 @@ Directory::Find(char *name)
 
     if (i != -1) {
         if (findNext) {
-            Openfile* openNextDir = new Openfile(table[i].sector);
+            OpenFile* openNextDir = new OpenFile(table[i].sector);
             Directory* nextDir = new Directory(NumDirEntries);
             nextDir->FetchFrom(openNextDir);
-            int result = nextDir->find(name);
+            int result = nextDir->Find(name);
             delete openNextDir;
             delete nextDir;
             return result;
@@ -221,7 +221,7 @@ Directory::Add(char *name, int newSector, char inType)
 bool
 Directory::Remove(char *name)
 {
-    if (find(name) = -1)
+    if (Find(name) == -1)
         return false;
     
     char nameWithOnlyPath[256] = {0};
@@ -244,7 +244,7 @@ Directory::Remove(char *name)
     if (nameWithOnlyPath[0] != 0) {
         int sector = Find(nameWithOnlyPath);
         OpenFile* openNextDir = new OpenFile(sector);
-        DIrectory* nextDir = new Directory(NumDirEntries);
+        Directory* nextDir = new Directory(NumDirEntries);
         nextDir->FetchFrom(openNextDir);
 
         int idx = nextDir->FindIndex(nameWithOnlyFile);
