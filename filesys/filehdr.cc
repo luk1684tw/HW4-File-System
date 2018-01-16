@@ -41,6 +41,8 @@ FileHeader::FileHeader()
 	numBytes = -1;
 	numSectors = -1;
 	memset(dataSectors, -1, sizeof(dataSectors));
+	numLists = -1;
+	memset(dataSectorLists, -1, sizeof(dataSectorLists));
 }
 
 //----------------------------------------------------------------------
@@ -71,16 +73,31 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
+	numLists = divRoundUp(numSectors, SectorNumPerList);
     if (freeMap->NumClear() < numSectors)
-	return FALSE;		// not enough space
+		return FALSE;		// not enough space
 
-    for (int i = 0; i < numSectors; i++) {
-		dataSectors[i] = freeMap->FindAndSet();
-		// since we checked that there was enough free space,
-		// we expect this to succeed
-		ASSERT(dataSectors[i] >= 0);
-    }
-    return TRUE;
+	int nowNumSectors = 0;
+	for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
+		dataSectorLists[i] = freeMap->FindAndSet();
+		ASSERT(dataSectorLists[i] >= 0);
+
+		int lastSectorNum;
+		if (nowNumSectors + SectorNumPerList > NumSectors)
+			lastSectorNum = NumSectors;
+		else
+			lastSectorNum = nowNumSectors + SectorNumPerList;
+		
+		int *buffer = new int[SectorNumPerList];
+		memset(buffer, 0, sizeof(int)*SectorNumPerList);
+		for (int j = 0; j < lastSectorNum - nowNumSectors; j++) {
+			buffer[j] = freeMap->FindAndSet();
+			ASSERT(buffer[j] >= 0);
+		}
+		kernel->synchDisk->WriteSector(dataSectorLists[i], buffer);
+		delete [] buffer;
+	}
+	return true;
 }
 
 //----------------------------------------------------------------------
@@ -93,10 +110,21 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
-    for (int i = 0; i < numSectors; i++) {
-		ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-		freeMap->Clear((int) dataSectors[i]);
-    }
+	int nowNumSectors = 0;
+	for (int i = 0; i < numLists; i++, nowNumSectors += SectorNumPerList) {
+		int lastSectorNum;
+		if (nowNumSectors + SectorNumPerList > numSectors)
+			lastSectorNum = numSectors;
+		else 
+			lastSectorNum = nowNumSectors + SectorNumPerList;
+
+		int buffer = new int[SectorNumPerList];
+		for (int j = 0; j < lastSectorNum; j++) {
+			ASSERT(freeMap->Test((int) buffer[j]));
+			freeMap->Clear((int)buffer[j]);
+		}
+		delete [] buffer;
+	}
 }
 
 //----------------------------------------------------------------------
