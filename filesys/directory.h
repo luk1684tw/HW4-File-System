@@ -63,16 +63,15 @@ class Directory {
     int Find(char *name);		// Find the sector number of the 
 					// FileHeader for file: "name"
 
-    bool Add(char *name, int newSector, char inType);  // Add a file name into the directory
-
     bool Remove(char *name);		// Remove a file from the directory
 
     void List();			// Print the names of all the files
 					//  in the directory
-    void recurList(int depth);
+    void RecursiveList(int depth);
     void Print();			// Verbose print of the contents
 					//  of the directory -- all the file
 					//  names and their contents.
+    bool Add(char *name, int newSector, char inType);  // Add a file name into the directory
 
   private:
   

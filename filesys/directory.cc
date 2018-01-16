@@ -117,14 +117,14 @@ Directory::Find(char *name)
     //cout << "Directory::Find, name: " << name << endl;
     name++;
     char localName[256] = {0};
-    char localIdx = 0;
+    char localID = 0;
     bool findNext = false;
     while (name[0] != '\0') {
         if (name[0] == '/') {
             findNext = true;
             break;
         }
-        localName[localIdx++] = name[0];
+        localName[localID++] = name[0];
         name++;
     }
     //cout << "localName: " << localName << endl;
@@ -132,11 +132,11 @@ Directory::Find(char *name)
     //cout << "i: " << i << endl;
     if (i != -1) {
         if (findNext) {
-            OpenFile* openNextDir = new OpenFile(table[i].sector);
+            OpenFile* nextDirectory = new OpenFile(table[i].sector);
             Directory* nextDir = new Directory(NumDirEntries);
-            nextDir->FetchFrom(openNextDir);
+            nextDir->FetchFrom(nextDirectory);
             int result = nextDir->Find(name);
-            delete openNextDir;
+            delete nextDirectory;
             delete nextDir;
             return result;
         } else {
@@ -163,38 +163,39 @@ Directory::Add(char *name, int newSector, char inType)
 { 
     if (Find(name) != -1)
 	    return FALSE;
-    char nameWithOnlyPath[256] = {0};
-    char nameWithOnlyFile[256] = {0};
-    int len = strlen(name), slashIdx, tempIdx = 0;
+
+    char Path[256] = {0};
+    char File[9] = {0};
+    int len = strlen(name), slash, tmpID = 0;
     for (int i = len - 1; i >= 0; i--) {
         if (name[i] == '/') {
-            slashIdx = i;
+            slash = i;
             break;
         }
     }
 
-    for (int i = 0; i < slashIdx; i++) {
-        nameWithOnlyPath[i] = name[i];
+    for (int i = slash+1; i < len; i++) {
+        File[tmpID++] = name[i];
     }
-    for (int i = slashIdx+1; i < len; i++) {
-        nameWithOnlyFile[tempIdx++] = name[i];
+    for (int i = 0; i < slash; i++) {
+        Path[i] = name[i];
     }
 
-    if (nameWithOnlyPath[0] != 0) {
-        int sector = Find(nameWithOnlyPath);
-        OpenFile* openNextDir = new OpenFile(sector);
+    if (Path[0] != 0) {
+        int sector = Find(Path);
+        OpenFile* nextDirectory = new OpenFile(sector);
         Directory* nextDir = new Directory(NumDirEntries);
-        nextDir->FetchFrom(openNextDir);
+        nextDir->FetchFrom(nextDirectory);
 
         for (int i = 0; i < tableSize; i++) {
             if (!nextDir->table[i].inUse) {
                 nextDir->table[i].inUse = true;
-                strncpy(nextDir->table[i].name, nameWithOnlyFile, FileNameMaxLen);
+                strncpy(nextDir->table[i].name, File, FileNameMaxLen);
                 nextDir->table[i].sector = newSector;
                 nextDir->table[i].type = inType;
-                nextDir->WriteBack(openNextDir);
+                nextDir->WriteBack(nextDirectory);
 
-                delete openNextDir;
+                delete nextDirectory;
                 delete nextDir;
                 return true;
             }
@@ -203,7 +204,7 @@ Directory::Add(char *name, int newSector, char inType)
         for (int i = 0; i < tableSize; i++) {
             if (!table[i].inUse) {
                 table[i].inUse = true;
-                strncpy(table[i].name, nameWithOnlyFile, FileNameMaxLen);
+                strncpy(table[i].name, File, FileNameMaxLen);
                 table[i].sector = newSector;
                 table[i].type = inType;
                 return true;
@@ -227,43 +228,43 @@ Directory::Remove(char *name)
     if (Find(name) == -1)
         return false;
     
-    char nameWithOnlyPath[256] = {0};
-    char nameWithOnlyFile[256] = {0};
-    int len = strlen(name), tempIdx = 0, slashIdx;
+    char Path[256] = {0};
+    char File[9] = {0};
+    int len = strlen(name), tmpID = 0, slash;
     for (int i = len-1; i >= 0; i--) {
         if (name[i] == '/') {
-            slashIdx = i;
+            slash = i;
             break;
         }
     }
 
-    for (int i = slashIdx + 1; i < len; i++) {
-        nameWithOnlyFile[tempIdx++] = name[i];
+    for (int i = slash + 1; i < len; i++) {
+        File[tmpID++] = name[i];
     }
-    for (int i = 0; i < slashIdx; i++) {
-        nameWithOnlyPath[i] = name[i];
+    for (int i = 0; i < slash; i++) {
+        Path[i] = name[i];
     }
     
-    if (nameWithOnlyPath[0] != 0) {
-        int sector = Find(nameWithOnlyPath);
-        OpenFile* openNextDir = new OpenFile(sector);
+    if (Path[0] != 0) {
+        int sector = Find(Path);
+        OpenFile* nextDirectory = new OpenFile(sector);
         Directory* nextDir = new Directory(NumDirEntries);
-        nextDir->FetchFrom(openNextDir);
+        nextDir->FetchFrom(nextDirectory);
 
-        int idx = nextDir->FindIndex(nameWithOnlyFile);
-        if (idx == -1)
+        int id = nextDir->FindIndex(File);
+        if (id == -1)
             return false;
         
-        nextDir->table[idx].inUse = false;
-        nextDir->WriteBack(openNextDir);
-        delete openNextDir;
+        nextDir->table[id].inUse = false;
+        nextDir->WriteBack(nextDirectory);
+        delete nextDirectory;
         delete nextDir;
         return true;
     } else {
-        int idx = this->FindIndex(name);
-        if (idx == -1)
+        int id = this->FindIndex(name);
+        if (id == -1)
             return false;
-        this->table[idx].inUse = false;
+        this->table[id].inUse = false;
         return true;
     }
 }
@@ -283,7 +284,7 @@ Directory::List()
    return;
 }
 
-void Directory::recurList(int depth)
+void Directory::RecursiveList(int depth)
 {
     for (int i = 0; i < tableSize; i++) {
         if (table[i].inUse) {
@@ -291,12 +292,12 @@ void Directory::recurList(int depth)
                 putchar(' ');
             printf("[Entry No.%d]: %s %c\n", i, table[i].name, table[i].type);
             if (table[i].type == 'D') {
-                OpenFile* openNextDir = new OpenFile(table[i].sector);
+                OpenFile* nextDirectory = new OpenFile(table[i].sector);
                 Directory* nextDir = new Directory(NumDirEntries);
-                nextDir->FetchFrom(openNextDir);
+                nextDir->FetchFrom(nextDirectory);
 
-                nextDir->recurList(depth+1);
-                delete openNextDir;
+                nextDir->RecursiveList(depth+1);
+                delete nextDirectory;
                 delete nextDir;
             }
         }

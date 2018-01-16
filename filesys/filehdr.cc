@@ -73,25 +73,25 @@ FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 	char empty[128] = {0};
 	numSectors  = divRoundUp(fileSize, SectorSize);
     numBytes = fileSize;
-    numLists = divRoundUp(numSectors, SectorNumPerList);
+    numLists = divRoundUp(numSectors, SectorsPerList);
 
     if (freeMap->NumClear() < numSectors)
 		return FALSE;		// not enough space
 
 	int SectorsRead = 0;
-	for (int i = 0; i < numLists; i++, SectorsRead += SectorNumPerList) {
+	for (int i = 0; i < numLists; i++, SectorsRead += SectorsPerList) {
 		dataSectorLists[i] = freeMap->FindAndSet();
 		ASSERT(dataSectorLists[i] >= 0);
 
-		int lastSectorNum;
-		if (SectorsRead + SectorNumPerList > NumSectors)
-			lastSectorNum = NumSectors;
+		int lastSector;
+		if (SectorsRead + SectorsPerList > NumSectors)
+			lastSector = NumSectors;
 		else
-			lastSectorNum = SectorsRead + SectorNumPerList;
+			lastSector = SectorsRead + SectorsPerList;
 		
-		int *buffer = new int[SectorNumPerList];
-		memset(buffer, 0, sizeof(int)*SectorNumPerList);
-		for (int j = 0; j < lastSectorNum - SectorsRead; j++) {
+		int *buffer = new int[SectorsPerList];
+		memset(buffer, 0, sizeof(int)*SectorsPerList);
+		for (int j = 0; j < lastSector - SectorsRead; j++) {
 			buffer[j] = freeMap->FindAndSet();
 			kernel->synchDisk->WriteSector(buffer[j], empty);
 			ASSERT(buffer[j] >= 0);
@@ -113,16 +113,16 @@ void
 FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
 	int SectorsRead = 0;
-	for (int i = 0; i < numLists; i++, SectorsRead += SectorNumPerList) {
-		int lastSectorNum;
-		if (SectorsRead + SectorNumPerList > numSectors)
-			lastSectorNum = numSectors;
+	for (int i = 0; i < numLists; i++, SectorsRead += SectorsPerList) {
+		int lastSector;
+		if (SectorsRead + SectorsPerList > numSectors)
+			lastSector = numSectors;
 		else 
-			lastSectorNum = SectorsRead + SectorNumPerList;
+			lastSector = SectorsRead + SectorsPerList;
 
-		int* buffer = new int[SectorNumPerList];
+		int* buffer = new int[SectorsPerList];
 		kernel->synchDisk->ReadSector(dataSectorLists[i], (char*) buffer);
-		for (int j = 0; j < lastSectorNum; j++) {
+		for (int j = 0; j < lastSector; j++) {
 			ASSERT(freeMap->Test((int) buffer[j]));
 			freeMap->Clear((int)buffer[j]);
 		}
@@ -172,9 +172,9 @@ FileHeader::ByteToSector(int offset)
     //return(dataSectors[offset / SectorSize]);
 	 int sectorID = offset / SectorSize;
      // calculate where is it stored
-     int listID = sectorID / SectorNumPerList, idInList = sectorID % SectorNumPerList;
+     int listID = sectorID / SectorsPerList, idInList = sectorID % SectorsPerList;
      // buf to read in
-     int *buffer = new int[SectorNumPerList];
+     int *buffer = new int[SectorsPerList];
      kernel->synchDisk->ReadSector(dataSectorLists[listID], (char *) buffer);
      // get the SectorNum
      int retVal = buffer[idInList];

@@ -21,8 +21,8 @@
 // #define MaxFileSize 	(NumDirect * SectorSize)
 
 #define MaxListNum			29
-#define SectorNumPerList	32
-#define MaxFileSize			MaxListNum * SectorNumPerList * SectorSize
+#define SectorsPerList		32
+#define MaxFileSize			MaxListNum * SectorsPerList * SectorSize
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
 // the "i-node"), describing where on disk to find all of the data in the file.

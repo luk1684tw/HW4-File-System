@@ -266,10 +266,10 @@ FileSystem::CreateDir(char *name)
                 directory->WriteBack(directoryFile);
                 freeMap->WriteBack(freeMapFile);      
             }
-            delete hdr;
         }
-        delete freeMap;
     }
+	delete freeMap;
+	delete hdr;
     delete directory;
     return success;
 }
@@ -356,8 +356,9 @@ FileSystem::Remove(char *name)
     freeMap->Clear(sector);			// remove header block
     directory->Remove(name);
 
+	directory->WriteBack(directoryFile);        // flush to disk
     freeMap->WriteBack(freeMapFile);		// flush to disk
-    directory->WriteBack(directoryFile);        // flush to disk
+	
     delete fileHdr;
     delete directory;
     delete freeMap;
@@ -370,10 +371,10 @@ FileSystem::Remove(char *name)
 //----------------------------------------------------------------------
 
 void
-FileSystem::List(char *listDirectoryName)
+FileSystem::List(char *ListDirName)
 {
     //Directory *directory = new Directory(NumDirEntries);
-    if (strlen(listDirectoryName) == 1)
+    if (strlen(ListDirName) == 1)
     {
         Directory *directory = new Directory(NumDirEntries);
         directory->FetchFrom(directoryFile);
@@ -385,7 +386,7 @@ FileSystem::List(char *listDirectoryName)
         Directory *directory = new Directory(NumDirEntries);
         directory->FetchFrom(directoryFile);
 
-        int targetSector = directory->Find(listDirectoryName);
+        int targetSector = directory->Find(ListDirName);
         OpenFile *dirFile = new OpenFile(targetSector);
         
         Directory *dir = new Directory(NumDirEntries);
@@ -400,30 +401,6 @@ FileSystem::List(char *listDirectoryName)
     //directory->List();
     //delete directory;
 }
-
-void FileSystem::recurList(char *listDirectoryName) {
-     if (strlen(listDirectoryName) == 1) {
-         Directory *directory = new Directory(NumDirEntries);
-         directory->FetchFrom(directoryFile);
-         directory->recurList(0);
-         delete directory;
-     } else {
-         Directory *directory = new Directory(NumDirEntries);
-         directory->FetchFrom(directoryFile);
-         int targetSector = directory->Find(listDirectoryName);
-         OpenFile *dirFile = new OpenFile(targetSector);
-         Directory *dir = new Directory(NumDirEntries);
-         dir->FetchFrom(dirFile);
-         dir->recurList(0);
-         delete directory;
-         delete dirFile;
-         delete dir;
-     }
-}
-
-
-
-
 
 //----------------------------------------------------------------------
 // FileSystem::Print
@@ -460,6 +437,28 @@ FileSystem::Print()
     delete dirHdr;
     delete freeMap;
     delete directory;
+}
+
+
+void 
+FileSystem::RecursiveList(char *ListDirName) {
+     if (strlen(ListDirName) == 1) {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         directory->RecursiveList(0);
+         delete directory;
+     } else {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         int targetSector = directory->Find(ListDirName);
+         OpenFile *dirFile = new OpenFile(targetSector);
+         Directory *dir = new Directory(NumDirEntries);
+         dir->FetchFrom(dirFile);
+         dir->RecursiveList(0);
+         delete directory;
+         delete dirFile;
+         delete dir;
+     }
 } 
 
 #endif // FILESYS_STUB

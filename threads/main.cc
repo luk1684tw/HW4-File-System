@@ -320,7 +320,7 @@ main(int argc, char **argv)
     }
     if (dirListFlag) {
 		if (recursiveListFlag)
-            kernel->fileSystem->recurList(listDirectoryName);
+            kernel->fileSystem->RecursiveList(listDirectoryName);
         else 
             kernel->fileSystem->List(listDirectoryName);
     }
