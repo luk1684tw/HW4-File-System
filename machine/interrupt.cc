@@ -392,4 +392,3 @@ Interrupt::DumpState()
     pending->Apply(PrintPending);
     cout << "\nEnd of pending interrupts\n";
 }
-

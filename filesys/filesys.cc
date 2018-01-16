@@ -62,7 +62,7 @@
 // supports extensible files, the directory size sets the maximum number 
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize 	(NumSectors / BitsInByte)
-#define NumDirEntries 		10
+#define NumDirEntries 		64
 #define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -247,6 +247,7 @@ FileSystem::Open(char *name)
 	openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
     opfile = openFile;
+
     return openFile;				// return NULL if not found
 }
 
