@@ -62,7 +62,7 @@
 // supports extensible files, the directory size sets the maximum number 
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize 	(NumSectors / BitsInByte)
-#define NumDirEntries 		10
+#define NumDirEntries 		64
 #define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -196,26 +196,34 @@ FileSystem::Create(char *name, int initialSize)
     directory->FetchFrom(directoryFile);
 
     if (directory->Find(name) != -1)
-      success = FALSE;			// file is already in directory
+        success = FALSE;			// file is already in directory
     else {	
         freeMap = new PersistentBitmap(freeMapFile,NumSectors);
         sector = freeMap->FindAndSet();	// find a sector to hold the file header
-    	if (sector == -1) 		
+    	if (sector == -1) 	{
+            //cout << "can't find a sector to hold fhdr\n";
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        }	
+        else if (!directory->Add(name, sector ,'F')) {
+            //cout << "Add directory wrong\n";
             success = FALSE;	// no space in directory
-	else {
+        
+	    } else {
     	    hdr = new FileHeader;
-	    if (!hdr->Allocate(freeMap, initialSize))
-            	success = FALSE;	// no space on disk for data
-	    else {	
-	    	success = TRUE;
-		// everthing worked, flush all changes back to disk
+	        if (!hdr->Allocate(freeMap, initialSize)){
+                //cout << "no space on disk for data\n";
+                success = FALSE;	// no space on disk for data
+            }
+	        else {	
+                //cout << "create file succeed\n";
+                //directory->List();
+	    	    success = TRUE;
+		    // everthing worked, flush all changes back to disk
     	    	hdr->WriteBack(sector); 		
     	    	directory->WriteBack(directoryFile);
     	    	freeMap->WriteBack(freeMapFile);
-	    }
-            delete hdr;
+	        }
+         delete hdr;
 	}
         delete freeMap;
     }
@@ -223,6 +231,48 @@ FileSystem::Create(char *name, int initialSize)
     return success;
 }
 
+bool 
+FileSystem::CreateDir(char *name)
+{
+    //cout << "test!!\n";
+    Directory *directory;
+    PersistentBitmap *freeMap;
+    FileHeader *hdr;
+    int sector;
+    bool success;
+
+    directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+
+    if (directory->Find(name) != -1) 
+        success = FALSE;
+    else
+    {
+        freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+        sector = freeMap->FindAndSet();
+        if (sector == -1) 
+            success = FALSE;
+        else if(!directory->Add(name, sector, 'D'))
+            success = FALSE;    
+        else
+        {
+            hdr = new FileHeader;
+            if (!hdr->Allocate(freeMap, DirectoryFileSize))
+                success = FALSE;
+            else
+            {
+                success = TRUE;
+                hdr->WriteBack(sector);
+                directory->WriteBack(directoryFile);
+                freeMap->WriteBack(freeMapFile);      
+            }
+        }
+    }
+	delete freeMap;
+	delete hdr;
+    delete directory;
+    return success;
+}
 //----------------------------------------------------------------------
 // FileSystem::Open
 // 	Open a file for reading and writing.  
@@ -232,7 +282,6 @@ FileSystem::Create(char *name, int initialSize)
 //
 //	"name" -- the text name of the file to be opened
 //----------------------------------------------------------------------
-
 OpenFile *
 FileSystem::Open(char *name)
 { 
@@ -244,9 +293,10 @@ FileSystem::Open(char *name)
     directory->FetchFrom(directoryFile);
     sector = directory->Find(name); 
     if (sector >= 0) 		
-	openFile = new OpenFile(sector);	// name was found in directory 
+	    openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
     opfile = openFile;
+    //cout << "sector: " << sector << endl;
     return openFile;				// return NULL if not found
 }
 
@@ -306,8 +356,9 @@ FileSystem::Remove(char *name)
     freeMap->Clear(sector);			// remove header block
     directory->Remove(name);
 
+	directory->WriteBack(directoryFile);        // flush to disk
     freeMap->WriteBack(freeMapFile);		// flush to disk
-    directory->WriteBack(directoryFile);        // flush to disk
+	
     delete fileHdr;
     delete directory;
     delete freeMap;
@@ -320,13 +371,35 @@ FileSystem::Remove(char *name)
 //----------------------------------------------------------------------
 
 void
-FileSystem::List()
+FileSystem::List(char *ListDirName)
 {
-    Directory *directory = new Directory(NumDirEntries);
+    //Directory *directory = new Directory(NumDirEntries);
+    if (strlen(ListDirName) == 1)
+    {
+        Directory *directory = new Directory(NumDirEntries);
+        directory->FetchFrom(directoryFile);
+        directory->List();
+        delete directory;
+    }
+    else
+    {
+        Directory *directory = new Directory(NumDirEntries);
+        directory->FetchFrom(directoryFile);
 
-    directory->FetchFrom(directoryFile);
-    directory->List();
-    delete directory;
+        int targetSector = directory->Find(ListDirName);
+        OpenFile *dirFile = new OpenFile(targetSector);
+        
+        Directory *dir = new Directory(NumDirEntries);
+        dir->FetchFrom(dirFile);
+        dir->List();
+
+        delete directory;
+        delete dirFile;
+        delete dir;
+    }
+    //directory->FetchFrom(directoryFile);
+    //directory->List();
+    //delete directory;
 }
 
 //----------------------------------------------------------------------
@@ -364,6 +437,28 @@ FileSystem::Print()
     delete dirHdr;
     delete freeMap;
     delete directory;
+}
+
+
+void 
+FileSystem::RecursiveList(char *ListDirName) {
+     if (strlen(ListDirName) == 1) {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         directory->RecursiveList(0);
+         delete directory;
+     } else {
+         Directory *directory = new Directory(NumDirEntries);
+         directory->FetchFrom(directoryFile);
+         int targetSector = directory->Find(ListDirName);
+         OpenFile *dirFile = new OpenFile(targetSector);
+         Directory *dir = new Directory(NumDirEntries);
+         dir->FetchFrom(dirFile);
+         dir->RecursiveList(0);
+         delete directory;
+         delete dirFile;
+         delete dir;
+     }
 } 
 
 #endif // FILESYS_STUB

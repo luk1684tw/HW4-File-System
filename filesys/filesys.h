@@ -84,13 +84,17 @@ class FileSystem {
 
     bool Remove(char *name);  		// Delete a file (UNIX unlink)
 
-    void List();			// List all the files in the file system
+    //void List();			
+	void List(char *ListDirName); // List all the files in the file system
+	void RecursiveList(char *ListDirName);
 
     void Print();			// List all the files and their contents
 
 	int Read(char *buffer, int size, int id);
 	int Write(char *buffer, int size, int id);
 	int Close(int id);
+
+	bool CreateDir(char *name);
 
 	OpenFile* opfile;
 
